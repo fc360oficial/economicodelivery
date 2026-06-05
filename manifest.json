@@ -1,0 +1,19 @@
+{
+  "name": "Econômico Delivery",
+  "short_name": "Econômico",
+  "description": "Peça delivery do Supermercado Econômico",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFC600",
+  "theme_color": "#e31e24",
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
