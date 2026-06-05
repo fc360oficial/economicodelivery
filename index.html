@@ -540,7 +540,8 @@ var C = {
   address: 'Rua Antonio Luiz Soares, 217',
   radius: 10,
   freeAbove: 80,
-  fee: 5
+  fee: 5,
+  cosmosToken: ''   // token da conta em cosmos.bluesoft.com.br
 };
 
 // ── PRODUTOS ─────────────────────────────────────────────────────────────────
@@ -660,17 +661,26 @@ function selectCat(cat) {
   renderAll();
 }
 
-// ── PRODUCT IMAGES (Open Food Facts) ─────────────────────────────────────────
+// ── PRODUCT IMAGES (Cosmos / Bluesoft) ───────────────────────────────────────
 var imgCache = {};
 
 function fetchImg(p) {
-  if (!p.ean || imgCache[p.ean] !== undefined) return;
+  if (!p.ean || !C.cosmosToken || imgCache[p.ean] !== undefined) return;
   imgCache[p.ean] = null;
-  fetch('https://world.openfoodfacts.org/api/v0/product/'+p.ean+'.json?fields=image_front_small_url')
-    .then(function(r){ return r.json(); })
+  fetch('https://api.cosmos.bluesoft.com.br/gtins/'+p.ean+'.json', {
+    headers: {
+      'X-Cosmos-Token': C.cosmosToken,
+      'Content-Type': 'application/json',
+      'User-Agent': 'Cosmos/EconomicoDelivery'
+    }
+  })
+    .then(function(r){
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    })
     .then(function(d){
-      var url = d.status===1 && d.product && d.product.image_front_small_url;
-      imgCache[p.ean] = url || '';
+      var url = d.thumbnail || d.picture || '';
+      imgCache[p.ean] = url;
       if (url) {
         document.querySelectorAll('[data-ean="'+p.ean+'"]').forEach(function(el){
           el.innerHTML = '<img src="'+url+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\''+p.img+'\'">';
