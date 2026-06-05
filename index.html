@@ -17,8 +17,8 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --red: #e31e24;
-      --redf: rgba(227,30,36,.08);
+      --red: #FFC600;
+      --redf: rgba(255,198,0,.14);
       --green: #1a6e35;
       --bg: #f4f5f7;
       --card: #fff;
@@ -49,7 +49,7 @@
     .splash-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; }
     .splash-btn { width: 100%; padding: 15px; border-radius: 8px; border: none; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; letter-spacing: .5px; transition: filter .15s; }
     .splash-btn:active { filter: brightness(.92); }
-    .btn-red { background: var(--red); color: #fff; }
+    .btn-red { background: var(--red); color: #1a1a1a; }
     .btn-green { background: var(--green); color: #fff; }
 
     /* ══════════ HOME HEADER ══════════ */
@@ -81,7 +81,7 @@
     .hdr-badge {
       position: absolute; top: -3px; right: -3px;
       width: 17px; height: 17px; border-radius: 50%;
-      background: var(--red); color: #fff; font-size: 9px; font-weight: 800;
+      background: #1a1a1a; color: #FFC600; font-size: 9px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
     }
 
@@ -177,9 +177,9 @@
     .prod-card.grid-card { width: 100%; }
     .oferta-badge {
       position: absolute; top: 8px; left: 8px; z-index: 2;
-      background: var(--red); color: #fff; font-size: 9px; font-weight: 800;
+      background: var(--red); color: #1a1a1a; font-size: 9px; font-weight: 800;
       text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
-      box-shadow: 0 2px 6px rgba(227,30,36,.35);
+      box-shadow: 0 2px 6px rgba(255,198,0,.4);
     }
     .prod-detail-btn {
       position: absolute; top: 8px; right: 8px; z-index: 2;
@@ -196,14 +196,14 @@
     .prod-price { font-size: 16px; font-weight: 800; color: var(--text); }
     .prod-price span { font-size: 11px; font-weight: 400; color: var(--text3); }
     .prod-off-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-    .off-badge { background: var(--red); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+    .off-badge { background: var(--red); color: #1a1a1a; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
     .prod-original { font-size: 11px; color: var(--text3); text-decoration: line-through; }
     .add-btn-wrap { display: flex; justify-content: center; margin-top: 8px; }
     .add-circle {
       width: 34px; height: 34px; border-radius: 50%;
-      background: var(--red); color: #fff; border: none; font-size: 22px;
+      background: var(--red); color: #1a1a1a; border: none; font-size: 22px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: transform .1s; box-shadow: 0 2px 8px rgba(227,30,36,.3);
+      transition: transform .1s; box-shadow: 0 2px 8px rgba(255,198,0,.45);
     }
     .add-circle:active { transform: scale(.88); }
     .qty-inline {
@@ -212,7 +212,7 @@
     }
     .qty-inline button {
       width: 26px; height: 26px; border-radius: 50%;
-      background: var(--red); color: #fff; border: none; font-size: 14px;
+      background: var(--red); color: #1a1a1a; border: none; font-size: 14px;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .qty-inline span { font-size: 13px; font-weight: 700; color: var(--red); min-width: 16px; text-align: center; }
@@ -239,12 +239,12 @@
       background: var(--red); border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       font-size: 24px; margin-top: -20px;
-      box-shadow: 0 4px 12px rgba(227,30,36,.4);
+      box-shadow: 0 4px 12px rgba(255,198,0,.5);
     }
     .nav-cart-badge {
       position: absolute; top: -2px; right: -2px;
       width: 18px; height: 18px; border-radius: 50%;
-      background: var(--text); color: #fff; font-size: 9px; font-weight: 800;
+      background: #1a1a1a; color: #FFC600; font-size: 9px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--card);
     }
@@ -268,7 +268,7 @@
     .ci-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
     .ci-price { font-size: 13px; font-weight: 700; color: var(--red); }
     .ci-qty { display: flex; align-items: center; gap: 6px; background: var(--redf); border-radius: 20px; padding: 3px 6px; }
-    .ci-qty button { width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ci-qty button { width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #1a1a1a; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .ci-qty span { font-size: 13px; font-weight: 700; color: var(--red); min-width: 18px; text-align: center; }
 
     .cart-footer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--card); border-top: 1px solid var(--border); padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
@@ -295,7 +295,7 @@
     .pay-opt-desc { font-size: 11px; color: var(--text3); }
     .pay-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .pay-opt.active .pay-radio { border-color: var(--red); }
-    .pay-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--red); display: none; }
+    .pay-dot { width: 9px; height: 9px; border-radius: 50%; background: #1a1a1a; display: none; }
     .pay-opt.active .pay-dot { display: block; }
     .sum-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
     .sum-row.total { font-size: 16px; font-weight: 800; color: var(--text); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; margin-bottom: 0; }
@@ -316,7 +316,7 @@
     .copy-btn { width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; background: #ffe08a; border: none; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; color: #7a5800; }
 
     /* BUTTONS */
-    .btn-red-full { width: 100%; padding: 14px; border-radius: 10px; background: var(--red); border: none; color: #fff; font-size: 15px; font-weight: 800; font-family: inherit; cursor: pointer; transition: filter .1s; display: block; text-align: center; text-decoration: none; }
+    .btn-red-full { width: 100%; padding: 14px; border-radius: 10px; background: var(--red); border: none; color: #1a1a1a; font-size: 15px; font-weight: 800; font-family: inherit; cursor: pointer; transition: filter .1s; display: block; text-align: center; text-decoration: none; }
     .btn-red-full:active { filter: brightness(.9); }
     .btn-outline-full { width: 100%; padding: 13px; border-radius: 10px; background: transparent; border: 2px solid var(--border); color: var(--text); font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; margin-top: 8px; }
 
