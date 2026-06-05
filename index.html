@@ -662,11 +662,18 @@ function selectCat(cat) {
 }
 
 // ── PRODUCT IMAGES (Cosmos / Bluesoft) ───────────────────────────────────────
-var imgCache = {};
+// carrega cache do localStorage para não repetir consultas ao Cosmos
+var imgCache = (function(){
+  try { return JSON.parse(localStorage.getItem('ec_imgs')||'{}'); } catch(e){ return {}; }
+})();
+
+function saveImgCache() {
+  try { localStorage.setItem('ec_imgs', JSON.stringify(imgCache)); } catch(e){}
+}
 
 function fetchImg(p) {
   if (!p.ean || !C.cosmosToken || imgCache[p.ean] !== undefined) return;
-  imgCache[p.ean] = null;
+  imgCache[p.ean] = null; // marcado como buscando
   fetch('https://api.cosmos.bluesoft.com.br/gtins/'+p.ean+'.json', {
     headers: {
       'X-Cosmos-Token': C.cosmosToken,
@@ -681,6 +688,7 @@ function fetchImg(p) {
     .then(function(d){
       var url = d.thumbnail || d.picture || '';
       imgCache[p.ean] = url;
+      saveImgCache();
       if (url) {
         document.querySelectorAll('[data-ean="'+p.ean+'"]').forEach(function(el){
           el.innerHTML = '<img src="'+url+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\''+p.img+'\'">';
