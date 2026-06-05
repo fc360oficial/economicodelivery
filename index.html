@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#e31e24">
+  <meta name="theme-color" content="#FFC600">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -55,25 +55,28 @@
     /* ══════════ HOME HEADER ══════════ */
     .app-header {
       position: sticky; top: 0; z-index: 200;
-      background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 10px 12px; display: flex; align-items: center; gap: 10px;
+      background: #FFC600;
+      padding: 12px 14px 10px; display: flex; align-items: center; gap: 10px;
     }
-    .hdr-logo { height: 32px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
+    .hdr-logo { height: 34px; object-fit: contain; flex-shrink: 0; mix-blend-mode: multiply; }
     .search-pill {
       flex: 1; display: flex; align-items: center; gap: 8px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 24px; padding: 8px 14px; cursor: text;
+      background: rgba(255,255,255,.85);
+      border: none;
+      border-radius: 24px; padding: 9px 14px; cursor: text;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
     }
     .search-pill input {
       flex: 1; border: none; background: transparent; font-size: 13px;
       font-family: inherit; color: var(--text); outline: none;
     }
-    .search-pill input::placeholder { color: var(--text3); }
-    .search-icon { font-size: 15px; color: var(--text3); flex-shrink: 0; }
+    .search-pill input::placeholder { color: #888; }
+    .search-icon { font-size: 15px; color: #888; flex-shrink: 0; }
     .hdr-cart {
       position: relative; width: 38px; height: 38px; border-radius: 50%;
-      background: var(--redf); border: none; cursor: pointer; flex-shrink: 0;
+      background: rgba(255,255,255,.85); border: none; cursor: pointer; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; font-size: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
     }
     .hdr-badge {
       position: absolute; top: -3px; right: -3px;
@@ -84,11 +87,12 @@
 
     /* LOCATION BAR */
     .loc-bar {
-      background: var(--card); border-bottom: 1px solid var(--border);
-      padding: 7px 14px; display: flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--text2); cursor: pointer;
+      background: #f0a800;
+      border-bottom: none;
+      padding: 7px 14px 9px; display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: rgba(0,0,0,.65); cursor: pointer;
     }
-    .loc-name { font-weight: 700; color: var(--red); }
+    .loc-name { font-weight: 700; color: #1a1a1a; }
 
     /* HOME SCROLL */
     .home-scroll { flex: 1; overflow-y: auto; padding-bottom: 72px; }
