@@ -92,9 +92,9 @@
     .home-scroll { flex: 1; overflow-y: auto; padding-bottom: 72px; }
 
     /* CATEGORIES */
-    .sec-head { padding: 14px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
-    .sec-title { font-size: 15px; font-weight: 800; }
-    .sec-more { font-size: 12px; font-weight: 600; color: var(--red); }
+    .sec-head { padding: 16px 14px 8px; display: flex; align-items: center; justify-content: space-between; }
+    .sec-title { font-size: 16px; font-weight: 800; }
+    .sec-more { font-size: 12px; font-weight: 700; color: var(--red); }
 
     .cats-row { display: flex; gap: 12px; overflow-x: auto; padding: 0 14px 14px; scrollbar-width: none; }
     .cats-row::-webkit-scrollbar { display: none; }
@@ -108,34 +108,86 @@
     .cat-label { font-size: 10px; font-weight: 600; color: var(--text2); text-align: center; max-width: 64px; line-height: 1.2; }
     .cat-label.sel { color: var(--red); }
 
+    /* PROMO BANNER */
+    .promo-banner {
+      margin: 14px 14px 4px;
+      border-radius: 18px;
+      background: linear-gradient(130deg, var(--red) 0%, #b8101a 100%);
+      padding: 22px 20px 20px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .promo-banner::before {
+      content: '';
+      position: absolute; right: -24px; top: -24px;
+      width: 130px; height: 130px; border-radius: 50%;
+      background: rgba(255,255,255,.1);
+    }
+    .promo-banner::after {
+      content: '';
+      position: absolute; right: 20px; bottom: -30px;
+      width: 90px; height: 90px; border-radius: 50%;
+      background: rgba(255,255,255,.07);
+    }
+    .promo-emoji { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 60px; opacity: .9; }
+    .promo-tag { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .8; margin-bottom: 5px; }
+    .promo-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; max-width: 200px; }
+    .promo-sub { font-size: 12px; opacity: .85; max-width: 190px; }
+    .promo-pill {
+      display: inline-block; background: #fff; color: var(--red);
+      font-size: 11px; font-weight: 800; padding: 5px 14px;
+      border-radius: 20px; margin-top: 12px; cursor: pointer;
+    }
+
+    /* QUICK CATEGORY GRID (2×2) */
+    .qcat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
+    .qcat-item {
+      border-radius: 16px; padding: 14px 14px 12px;
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; transition: transform .12s;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .qcat-item:active { transform: scale(.96); }
+    .qcat-emoji { font-size: 30px; flex-shrink: 0; }
+    .qcat-name { font-size: 13px; font-weight: 800; color: #1a1a1a; line-height: 1.2; }
+
     /* PRODUCT ROW (horizontal scroll) */
-    .prod-row { display: flex; gap: 10px; overflow-x: auto; padding: 0 14px 4px; scrollbar-width: none; }
+    .prod-row { display: flex; gap: 12px; overflow-x: auto; padding: 0 14px 8px; scrollbar-width: none; }
     .prod-row::-webkit-scrollbar { display: none; }
 
     /* PRODUCT CARD */
     .prod-card {
-      flex-shrink: 0; width: 148px;
-      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      flex-shrink: 0; width: 158px;
+      background: var(--card); border-radius: 16px;
+      border: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,.09);
       display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
     .prod-card.grid-card { width: 100%; }
     .oferta-badge {
-      position: absolute; top: 7px; left: 7px; z-index: 2;
+      position: absolute; top: 8px; left: 8px; z-index: 2;
       background: var(--red); color: #fff; font-size: 9px; font-weight: 800;
-      text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(227,30,36,.35);
     }
     .prod-detail-btn {
-      position: absolute; top: 7px; right: 7px; z-index: 2;
-      width: 24px; height: 24px; border-radius: 50%;
-      background: rgba(255,255,255,.9); border: 1px solid var(--border);
+      position: absolute; top: 8px; right: 8px; z-index: 2;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,.95); border: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
       font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
       color: var(--text2);
     }
-    .prod-img { aspect-ratio: 1; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 50px; }
+    .prod-img { aspect-ratio: 1; background: #f7f7f7; display: flex; align-items: center; justify-content: center; font-size: 68px; }
     .prod-img img { width: 100%; height: 100%; object-fit: cover; }
-    .prod-body { padding: 8px 8px 10px; }
-    .prod-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .prod-price { font-size: 15px; font-weight: 800; color: var(--text); }
+    .prod-body { padding: 10px 10px 12px; }
+    .prod-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prod-price { font-size: 16px; font-weight: 800; color: var(--text); }
     .prod-price span { font-size: 11px; font-weight: 400; color: var(--text3); }
     .prod-off-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
     .off-badge { background: var(--red); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
@@ -160,7 +212,7 @@
     .qty-inline span { font-size: 13px; font-weight: 700; color: var(--red); min-width: 16px; text-align: center; }
 
     /* GRID */
-    .prod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px; }
+    .prod-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 14px; }
     .no-results { grid-column: span 2; text-align: center; padding: 40px; color: var(--text3); font-size: 14px; }
 
     /* ══════════ BOTTOM NAV ══════════ */
@@ -267,7 +319,7 @@
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* DIVIDER */
-    .sec-divider { height: 8px; background: var(--bg); }
+    .sec-divider { height: 10px; background: var(--bg); }
   </style>
 </head>
 <body>
@@ -308,8 +360,23 @@
 
   <div class="home-scroll" id="home-scroll">
 
-    <!-- CATEGORIAS -->
-    <div class="sec-head"><span class="sec-title">Categorias</span></div>
+    <!-- BANNER PROMOCIONAL -->
+    <div class="promo-banner" onclick="selectCat('Todos');scrollToOferta()">
+      <span class="promo-emoji">🛒</span>
+      <div class="promo-tag">Promoções especiais</div>
+      <div class="promo-title">Economia no seu bolso todo dia</div>
+      <div class="promo-sub">Frete grátis acima de R$80</div>
+      <div class="promo-pill">Ver ofertas →</div>
+    </div>
+
+    <!-- CATEGORIAS RÁPIDAS (2×2) -->
+    <div class="sec-head" style="padding-bottom:10px"><span class="sec-title">Comprar por categoria</span></div>
+    <div class="qcat-grid" id="qcat-grid"></div>
+
+    <div class="sec-divider" style="margin-top:14px"></div>
+
+    <!-- CATEGORIAS (scroll horizontal) -->
+    <div class="sec-head"><span class="sec-title">Todos</span></div>
     <div class="cats-row" id="cats-row"></div>
 
     <div class="sec-divider"></div>
@@ -317,7 +384,7 @@
     <!-- OFERTAS (horizontal) -->
     <div class="sec-head" id="sec-ofertas-head">
       <span class="sec-title">🔥 Ofertas da Semana</span>
-      <span class="sec-more" onclick="selectCat('Todos');scrollToGrid()">mais &gt;</span>
+      <span class="sec-more" onclick="selectCat('Todos');scrollToGrid()">Ver todos &gt;</span>
     </div>
     <div class="prod-row" id="prod-row-ofertas"></div>
 
@@ -325,8 +392,8 @@
 
     <!-- DESTAQUES (horizontal) -->
     <div class="sec-head">
-      <span class="sec-title">⭐ Destaques</span>
-      <span class="sec-more" onclick="selectCat('Todos');scrollToGrid()">mais &gt;</span>
+      <span class="sec-title">⭐ Mais Vendidos</span>
+      <span class="sec-more" onclick="selectCat('Todos');scrollToGrid()">Ver todos &gt;</span>
     </div>
     <div class="prod-row" id="prod-row-dest"></div>
 
@@ -554,6 +621,22 @@ function entrar(mode) {
 var CATS = ['Todos'];
 P.forEach(function(p){ if(CATS.indexOf(p.cat)===-1) CATS.push(p.cat); });
 
+var QCATS = [
+  {cat:'Hortifruti', e:'🥦', bg:'#d4edda'},
+  {cat:'Bebidas',    e:'🥤', bg:'#cce5ff'},
+  {cat:'Carnes',     e:'🥩', bg:'#f8d7da'},
+  {cat:'Mercearia',  e:'🛒', bg:'#fff3cd'},
+];
+
+function renderQCats() {
+  document.getElementById('qcat-grid').innerHTML = QCATS.map(function(q){
+    return '<div class="qcat-item" style="background:'+q.bg+'" onclick="selectCat(\''+q.cat+'\');scrollToGrid()">'
+      +'<span class="qcat-emoji">'+q.e+'</span>'
+      +'<span class="qcat-name">'+q.cat+'</span>'
+      +'</div>';
+  }).join('');
+}
+
 function renderCats() {
   document.getElementById('cats-row').innerHTML = CATS.map(function(c){
     var info = CAT_ICONS[c]||{e:'📦',bg:'#f0f0f0'};
@@ -602,6 +685,7 @@ function cardHtml(p, compact) {
 
 // ── RENDER ALL ────────────────────────────────────────────────────────────────
 function renderAll() {
+  renderQCats();
   renderCats();
 
   var q = (document.getElementById('search-input').value||'').toLowerCase().trim();
