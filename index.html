@@ -360,7 +360,7 @@
     </button>
   </div>
 
-  <div class="loc-bar">
+  <div class="loc-bar" onclick="voltarSplash()">
     📍&nbsp;<span id="loc-mode">Entrega em: </span><span class="loc-name" id="loc-val">—</span>&nbsp;▾
   </div>
 
@@ -826,6 +826,15 @@ function confirmar() {
 }
 function copyPix() { if(navigator.clipboard&&C.pixKey) navigator.clipboard.writeText(C.pixKey).then(function(){toast('Chave PIX copiada! ✓');}); }
 function voltar() { renderAll(); showScreen('sc-home'); }
+
+function voltarSplash() {
+  localStorage.removeItem('ec_screen');
+  localStorage.removeItem('ec_mode');
+  localStorage.removeItem('ec_loc');
+  document.getElementById('splash-cep').value = '';
+  document.getElementById('cep-street').textContent = '';
+  showScreen('sc-splash');
+}
 
 // ── TOAST ────────────────────────────────────────────────────────────────────
 function toast(msg) {
