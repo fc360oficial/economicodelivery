@@ -699,8 +699,12 @@ function fetchImg(p) {
 }
 
 function imgHtml(p) {
+  // prioridade: 1) Cosmos cache  2) foto local  3) emoji
   if (p.ean && imgCache[p.ean]) {
     return '<img src="'+imgCache[p.ean]+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\''+p.img+'\'">';
+  }
+  if (p.img && (p.img.indexOf('.')=== 0 || p.img.indexOf('http')===0)) {
+    return '<img src="'+p.img+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\'📦\'">';
   }
   return p.img;
 }
