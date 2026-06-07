@@ -691,22 +691,42 @@ function fetchImg(p) {
       saveImgCache();
       if (url) {
         document.querySelectorAll('[data-ean="'+p.ean+'"]').forEach(function(el){
-          el.innerHTML = '<img src="'+url+'" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\''+p.img+'\'">';
+          applyBgImg(el, url, p.img);
         });
       }
     })
     .catch(function(){ imgCache[p.ean] = ''; });
 }
 
-var IMG_STYLE = 'width:100%;height:100%;object-fit:contain;display:block;';
+function applyBgImg(el, url, fallback) {
+  var probe = new Image();
+  probe.onload = function() {
+    el.style.backgroundImage = 'url('+url+')';
+    el.style.backgroundSize = 'contain';
+    el.style.backgroundRepeat = 'no-repeat';
+    el.style.backgroundPosition = 'center';
+    el.innerHTML = '';
+  };
+  probe.onerror = function() {
+    el.style.backgroundImage = '';
+    el.innerHTML = fallback;
+  };
+  probe.src = url;
+}
+
+function applyAllCachedImgs() {
+  P.forEach(function(p) {
+    if (!p.ean || !imgCache[p.ean]) return;
+    document.querySelectorAll('[data-ean="'+p.ean+'"]').forEach(function(el) {
+      applyBgImg(el, imgCache[p.ean], p.img);
+    });
+  });
+}
 
 function imgHtml(p) {
-  // prioridade: 1) Cosmos cache  2) foto local  3) emoji
-  if (p.ean && imgCache[p.ean]) {
-    return '<img src="'+imgCache[p.ean]+'" alt="" loading="lazy" style="'+IMG_STYLE+'" onerror="this.parentNode.innerHTML=\''+p.img+'\'">';
-  }
+  // sempre retorna emoji; background é aplicado depois via applyAllCachedImgs
   if (p.img && (p.img.indexOf('.')=== 0 || p.img.indexOf('http')===0)) {
-    return '<img src="'+p.img+'" alt="" loading="lazy" style="'+IMG_STYLE+'" onerror="this.parentNode.innerHTML=\'📦\'">';
+    return ''; // foto local — aplicada como bg depois
   }
   return p.img;
 }
@@ -769,6 +789,7 @@ function renderAll() {
   } else {
     gridEl.innerHTML = grid.map(function(p){ return cardHtml(p,false); }).join('');
   }
+  applyAllCachedImgs();
   P.forEach(function(p){ fetchImg(p); });
 }
 
