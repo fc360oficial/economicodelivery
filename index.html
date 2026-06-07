@@ -124,7 +124,7 @@
       background: linear-gradient(130deg, #c0111a 0%, #8b0000 100%);
     }
     .promo-banner.img-mode { height: auto; }
-    .promo-banner.img-mode img { width: 100%; aspect-ratio: 1080/400; object-fit: cover; display: block; border-radius: 18px; }
+    .promo-banner.img-mode img { width: 100%; aspect-ratio: 1080/500; object-fit: cover; display: block; border-radius: 18px; }
     .promo-banner.txt-mode {
       padding: 20px 20px 18px; color: #fff; height: 160px;
       display: flex; flex-direction: column; justify-content: center;
@@ -155,16 +155,16 @@
     .banner-dot.active { width: 18px; background: #1a1a1a; }
 
     /* QUICK CATEGORY GRID (2×2) */
-    .qcat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
+    .qcat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 14px 4px; }
     .qcat-item {
-      border-radius: 16px; padding: 14px 14px 12px;
-      display: flex; align-items: center; gap: 10px;
+      border-radius: 12px; padding: 8px 10px;
+      display: flex; align-items: center; gap: 8px;
       cursor: pointer; transition: transform .12s;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
     }
     .qcat-item:active { transform: scale(.96); }
-    .qcat-emoji { font-size: 30px; flex-shrink: 0; }
-    .qcat-name { font-size: 13px; font-weight: 800; color: #1a1a1a; line-height: 1.2; }
+    .qcat-emoji { font-size: 22px; flex-shrink: 0; }
+    .qcat-name { font-size: 12px; font-weight: 800; color: #1a1a1a; line-height: 1.2; }
 
     /* PRODUCT ROW (horizontal scroll) */
     .prod-row { display: flex; gap: 12px; overflow-x: auto; padding: 0 14px 8px; scrollbar-width: none; }
