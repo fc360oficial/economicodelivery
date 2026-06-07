@@ -167,9 +167,44 @@
     .upload-area-txt { font-size: 13px; color: var(--text2); }
     .upload-area-hint { font-size: 11px; color: #555; margin-top: 4px; }
     #banner-uploading { display:none; font-size:13px; color:var(--y); margin-bottom:12px; }
+
+    /* ── TOAST ── */
+    #toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(80px);
+      background:#22c55e; color:#fff; font-size:14px; font-weight:700; padding:12px 24px;
+      border-radius:40px; z-index:9999; transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 24px rgba(0,0,0,.3); pointer-events:none; }
+    #toast.show { transform:translateX(-50%) translateY(0); }
+
+    /* ── CONFIG FORM ── */
+    .config-section { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; margin-bottom:16px; }
+    .config-section-title { font-size:13px; font-weight:800; color:var(--y); margin-bottom:16px; text-transform:uppercase; letter-spacing:.5px; }
+    .config-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .config-grid .field { margin-bottom:0; }
+    @media(max-width:520px){ .config-grid { grid-template-columns:1fr; } }
+
+    /* ── REPORTS ── */
+    .report-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:20px; }
+    .report-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .report-table th { text-align:left; padding:10px 12px; font-size:11px; color:var(--text2); font-weight:700; border-bottom:1px solid var(--border); }
+    .report-table td { padding:10px 12px; border-bottom:1px solid #1e1e1e; }
+    .report-table tr:last-child td { border-bottom:none; }
+
+    /* ── CUPONS ── */
+    .cupon-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .cupon-row:last-child { border-bottom:none; }
+    .cupon-code { font-size:15px; font-weight:900; color:var(--y); font-family:monospace; background:#111; padding:4px 12px; border-radius:8px; }
+    .cupon-desc { font-size:12px; color:var(--text2); flex:1; }
+
+    /* ── CATEGORIAS ── */
+    .cat-admin-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--border); }
+    .cat-admin-row:last-child { border-bottom:none; }
+    .cat-admin-emoji { font-size:22px; width:36px; text-align:center; }
+    .cat-admin-name { flex:1; font-size:14px; font-weight:600; }
   </style>
 </head>
 <body>
+
+<div id="toast"></div>
 
 <!-- ── LOGIN ── -->
 <div id="login-screen">
@@ -190,10 +225,14 @@
     <button class="admin-logout" onclick="logout()">Sair</button>
   </div>
 
-  <div class="admin-tabs">
+  <div class="admin-tabs" style="overflow-x:auto;white-space:nowrap">
     <div class="admin-tab active" onclick="goTab('pedidos')">📦 Pedidos</div>
     <div class="admin-tab" onclick="goTab('produtos')">🛒 Produtos</div>
     <div class="admin-tab" onclick="goTab('banners')">🖼 Banners</div>
+    <div class="admin-tab" onclick="goTab('relatorios')">📊 Relatórios</div>
+    <div class="admin-tab" onclick="goTab('cupons')">🏷 Cupons</div>
+    <div class="admin-tab" onclick="goTab('categorias')">🗂 Categorias</div>
+    <div class="admin-tab" onclick="goTab('config')">⚙️ Config</div>
   </div>
 
   <div class="admin-body">
@@ -238,6 +277,88 @@
         <div class="upload-area-hint">JPG ou PNG · 1080 × 500 px</div>
       </div>
       <div class="banner-grid" id="banners-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB RELATÓRIOS -->
+    <div class="tab-panel" id="tab-relatorios">
+      <div class="toolbar"><div class="toolbar-title">Relatórios</div>
+        <button class="btn btn-outline btn-sm" onclick="loadRelatorios()">↻ Atualizar</button>
+      </div>
+      <div class="report-stats" id="rep-stats"></div>
+      <div class="config-section">
+        <div class="config-section-title">Pedidos por dia</div>
+        <div id="rep-table"><div class="loading">Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- TAB CUPONS -->
+    <div class="tab-panel" id="tab-cupons">
+      <div class="toolbar"><div class="toolbar-title">Cupons de Desconto</div></div>
+      <div class="config-section" style="margin-bottom:16px">
+        <div class="config-section-title">Novo Cupom</div>
+        <div class="config-grid">
+          <div class="field"><label>Código</label><input id="cup-codigo" placeholder="EX: PROMO10" style="text-transform:uppercase"></div>
+          <div class="field"><label>Tipo</label>
+            <select id="cup-tipo">
+              <option value="percentual">Percentual (%)</option>
+              <option value="fixo">Valor fixo (R$)</option>
+            </select>
+          </div>
+          <div class="field"><label>Valor</label><input id="cup-valor" type="number" step="0.01" placeholder="Ex: 10"></div>
+          <div class="field"><label>Usos máximos (0 = ilimitado)</label><input id="cup-usos" type="number" placeholder="0" value="0"></div>
+        </div>
+        <button class="btn btn-y" style="margin-top:14px;width:100%" onclick="addCupon()">+ Criar cupom</button>
+      </div>
+      <div class="card" id="cupons-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB CATEGORIAS -->
+    <div class="tab-panel" id="tab-categorias">
+      <div class="toolbar"><div class="toolbar-title">Categorias</div></div>
+      <div class="config-section" style="margin-bottom:16px">
+        <div class="config-section-title">Nova Categoria</div>
+        <div class="config-grid">
+          <div class="field"><label>Nome</label><input id="cat-nome" placeholder="Ex: Padaria"></div>
+          <div class="field"><label>Emoji</label><input id="cat-emoji" placeholder="🍞" style="font-size:22px;text-align:center"></div>
+          <div class="field"><label>Cor de fundo</label><input id="cat-cor" type="color" value="#fef9c3" style="height:44px;cursor:pointer"></div>
+        </div>
+        <button class="btn btn-y" style="margin-top:14px;width:100%" onclick="addCategoria()">+ Criar categoria</button>
+      </div>
+      <div class="card" id="categorias-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB CONFIG -->
+    <div class="tab-panel" id="tab-config">
+      <div class="toolbar"><div class="toolbar-title">Configurações da Loja</div></div>
+      <div class="config-section">
+        <div class="config-section-title">Dados da loja</div>
+        <div class="config-grid">
+          <div class="field"><label>Nome da loja</label><input id="cfg-nome" placeholder="Econômico Delivery"></div>
+          <div class="field"><label>WhatsApp (só números)</label><input id="cfg-whatsapp" placeholder="5582999999999"></div>
+        </div>
+      </div>
+      <div class="config-section">
+        <div class="config-section-title">Entrega e preços</div>
+        <div class="config-grid">
+          <div class="field"><label>Taxa de entrega (R$)</label><input id="cfg-frete" type="number" step="0.01" placeholder="5.00"></div>
+          <div class="field"><label>Pedido mínimo (R$)</label><input id="cfg-minimo" type="number" step="0.01" placeholder="20.00"></div>
+          <div class="field"><label>Frete grátis acima de (R$)</label><input id="cfg-gratis" type="number" step="0.01" placeholder="80.00"></div>
+        </div>
+      </div>
+      <div class="config-section">
+        <div class="config-section-title">Horário de funcionamento</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;color:var(--text2)">Controlar horário</label>
+          <input type="checkbox" id="cfg-horario-ativo" style="width:18px;height:18px;cursor:pointer">
+        </div>
+        <div class="config-grid">
+          <div class="field"><label>Abertura</label><input id="cfg-abertura" type="time" value="08:00"></div>
+          <div class="field"><label>Fechamento</label><input id="cfg-fechamento" type="time" value="22:00"></div>
+        </div>
+        <p style="font-size:11px;color:var(--text2);margin-top:8px">Quando ativado, o app bloqueia pedidos fora do horário.</p>
+      </div>
+      <button class="btn btn-y" style="width:100%;padding:14px;font-size:15px" onclick="saveConfig()">💾 Salvar configurações</button>
+      <div id="cfg-msg" style="text-align:center;font-size:13px;font-weight:700;margin-top:12px;min-height:20px"></div>
     </div>
 
   </div>
@@ -339,6 +460,32 @@ function entrarAdmin() {
   loadPedidos();
   loadProdutos();
   loadBanners();
+  loadConfig();
+}
+
+function showToast(msg, cor) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = cor || '#22c55e';
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3500);
+}
+
+function playAlert() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18, 0.36].forEach(function(delay) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.18);
+    });
+  } catch(e) {}
 }
 function doLogin() {
   var pwd = document.getElementById('login-pwd').value;
@@ -358,13 +505,17 @@ function logout() {
 if (sessionStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
+var _TABS = ['pedidos','produtos','banners','relatorios','cupons','categorias','config'];
 function goTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(function(el,i){
-    el.classList.toggle('active', ['pedidos','produtos','banners'][i]===tab);
+    el.classList.toggle('active', _TABS[i]===tab);
   });
   document.querySelectorAll('.tab-panel').forEach(function(el){el.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.add('active');
   sessionStorage.setItem('ec_admin_tab', tab);
+  if (tab==='relatorios') loadRelatorios();
+  if (tab==='cupons') loadCupons();
+  if (tab==='categorias') loadCategorias();
 }
 
 // ── BANNERS ───────────────────────────────────────────────────────────────────
@@ -449,6 +600,137 @@ function deleteBanner(docId) {
   db.collection('banners').doc(docId).delete().then(loadBanners);
 }
 
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+var _cfg = {};
+function loadConfig() {
+  db.collection('config').doc('loja').get().then(function(doc) {
+    if (!doc.exists) return;
+    var d = doc.data(); _cfg = d;
+    document.getElementById('cfg-nome').value        = d.nomeStore   || '';
+    document.getElementById('cfg-whatsapp').value    = d.whatsapp    || '';
+    document.getElementById('cfg-frete').value       = d.taxaEntrega != null ? d.taxaEntrega : '';
+    document.getElementById('cfg-minimo').value      = d.pedidoMinimo!= null ? d.pedidoMinimo: '';
+    document.getElementById('cfg-gratis').value      = d.freteGratis != null ? d.freteGratis : '';
+    if (d.horario) {
+      document.getElementById('cfg-horario-ativo').checked = !!d.horario.ativo;
+      document.getElementById('cfg-abertura').value  = d.horario.abertura  || '08:00';
+      document.getElementById('cfg-fechamento').value= d.horario.fechamento|| '22:00';
+    }
+  });
+}
+function saveConfig() {
+  var data = {
+    nomeStore:   document.getElementById('cfg-nome').value.trim(),
+    whatsapp:    document.getElementById('cfg-whatsapp').value.trim(),
+    taxaEntrega: parseFloat(document.getElementById('cfg-frete').value)  || 0,
+    pedidoMinimo:parseFloat(document.getElementById('cfg-minimo').value) || 0,
+    freteGratis: parseFloat(document.getElementById('cfg-gratis').value) || 0,
+    horario: {
+      ativo:      document.getElementById('cfg-horario-ativo').checked,
+      abertura:   document.getElementById('cfg-abertura').value,
+      fechamento: document.getElementById('cfg-fechamento').value,
+    }
+  };
+  db.collection('config').doc('loja').set(data, {merge:true})
+    .then(function(){
+      document.getElementById('cfg-msg').textContent = '✅ Salvo com sucesso!';
+      document.getElementById('cfg-msg').style.color = '#22c55e';
+      setTimeout(function(){ document.getElementById('cfg-msg').textContent=''; }, 3000);
+    })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
+
+// ── RELATÓRIOS ────────────────────────────────────────────────────────────────
+function loadRelatorios() {
+  var el = document.getElementById('rep-table');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('pedidos').orderBy('createdAt','desc').limit(200).get().then(function(snap) {
+    var totalVal=0, totalQtd=0, byDay={};
+    snap.docs.forEach(function(doc){
+      var d = doc.data();
+      if (d.status === 'cancelado') return;
+      totalVal += d.total || 0;
+      totalQtd++;
+      var dt = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate() : new Date();
+      var dia = dt.toLocaleDateString('pt-BR');
+      if (!byDay[dia]) byDay[dia] = {qtd:0,val:0};
+      byDay[dia].qtd++; byDay[dia].val += d.total||0;
+    });
+    document.getElementById('rep-stats').innerHTML =
+      '<div class="stat-card"><div class="stat-val">'+totalQtd+'</div><div class="stat-label">Pedidos (últ. 200)</div></div>'
+      +'<div class="stat-card"><div class="stat-val">R$'+totalVal.toFixed(2).replace('.',',')+'</div><div class="stat-label">Faturamento</div></div>'
+      +'<div class="stat-card"><div class="stat-val">R$'+(totalQtd?totalVal/totalQtd:0).toFixed(2).replace('.',',')+'</div><div class="stat-label">Ticket médio</div></div>';
+    var dias = Object.keys(byDay);
+    if (!dias.length) { el.innerHTML='<div class="empty"><div class="empty-txt">Sem pedidos</div></div>'; return; }
+    el.innerHTML = '<table class="report-table"><thead><tr><th>Data</th><th>Pedidos</th><th>Total</th></tr></thead><tbody>'
+      + dias.map(function(d){ return '<tr><td>'+d+'</td><td>'+byDay[d].qtd+'</td><td>R$'+byDay[d].val.toFixed(2).replace('.',',')+'</td></tr>'; }).join('')
+      +'</tbody></table>';
+  });
+}
+
+// ── CUPONS ────────────────────────────────────────────────────────────────────
+function loadCupons() {
+  var el = document.getElementById('cupons-list');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('cupons').orderBy('criadoEm','desc').get().then(function(snap) {
+    if (snap.empty) { el.innerHTML='<div class="empty"><div class="empty-icon">🏷</div><div class="empty-txt">Nenhum cupom criado</div></div>'; return; }
+    el.innerHTML = snap.docs.map(function(doc){
+      var d = doc.data();
+      var desc = d.tipo==='percentual' ? d.valor+'% de desconto' : 'R$'+Number(d.valor).toFixed(2).replace('.',',')+' de desconto';
+      var usos = d.usoMax>0 ? ' · '+d.usoAtual+'/'+d.usoMax+' usos' : ' · Ilimitado';
+      return '<div class="cupon-row">'
+        +'<span class="cupon-code">'+d.codigo+'</span>'
+        +'<span class="cupon-desc">'+desc+usos+'</span>'
+        +'<button class="btn btn-outline btn-sm" onclick="deleteCupon(\''+doc.id+'\')" style="border-color:var(--red);color:var(--red)">🗑</button>'
+        +'</div>';
+    }).join('');
+  });
+}
+function addCupon() {
+  var codigo = document.getElementById('cup-codigo').value.trim().toUpperCase();
+  var tipo   = document.getElementById('cup-tipo').value;
+  var valor  = parseFloat(document.getElementById('cup-valor').value)||0;
+  var usoMax = parseInt(document.getElementById('cup-usos').value)||0;
+  if (!codigo || !valor) { alert('Preencha o código e o valor.'); return; }
+  db.collection('cupons').add({ codigo:codigo, tipo:tipo, valor:valor, usoMax:usoMax, usoAtual:0, ativo:true, criadoEm:firebase.firestore.FieldValue.serverTimestamp() })
+    .then(function(){ ['cup-codigo','cup-valor'].forEach(function(id){ document.getElementById(id).value=''; }); loadCupons(); })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
+function deleteCupon(docId) {
+  if (!confirm('Remover cupom?')) return;
+  db.collection('cupons').doc(docId).delete().then(loadCupons);
+}
+
+// ── CATEGORIAS ────────────────────────────────────────────────────────────────
+function loadCategorias() {
+  var el = document.getElementById('categorias-list');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('categorias').orderBy('ordem').get().then(function(snap) {
+    if (snap.empty) { el.innerHTML='<div class="empty"><div class="empty-icon">🗂</div><div class="empty-txt">Nenhuma categoria. Adicione acima.</div></div>'; return; }
+    el.innerHTML = snap.docs.map(function(doc){
+      var d = doc.data();
+      return '<div class="cat-admin-row">'
+        +'<span class="cat-admin-emoji" style="background:'+d.cor+';border-radius:50%;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center">'+d.emoji+'</span>'
+        +'<span class="cat-admin-name">'+d.nome+'</span>'
+        +'<button class="btn btn-outline btn-sm" onclick="deleteCategoria(\''+doc.id+'\')" style="border-color:var(--red);color:var(--red)">🗑</button>'
+        +'</div>';
+    }).join('');
+  });
+}
+function addCategoria() {
+  var nome  = document.getElementById('cat-nome').value.trim();
+  var emoji = document.getElementById('cat-emoji').value.trim() || '📦';
+  var cor   = document.getElementById('cat-cor').value || '#f0f0f0';
+  if (!nome) { alert('Digite o nome da categoria.'); return; }
+  db.collection('categorias').add({ nome:nome, emoji:emoji, cor:cor, ordem:Date.now(), ativo:true })
+    .then(function(){ document.getElementById('cat-nome').value=''; document.getElementById('cat-emoji').value=''; loadCategorias(); })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
+function deleteCategoria(docId) {
+  if (!confirm('Remover categoria?')) return;
+  db.collection('categorias').doc(docId).delete().then(loadCategorias);
+}
+
 // ── PEDIDOS ───────────────────────────────────────────────────────────────────
 var STATUS_LABELS = {
   recebido:   {label:'Recebido',   badge:'badge-blue'},
@@ -465,11 +747,29 @@ var STATUS_NEXT = {
   cancelado:  [],
 };
 
+var _unsubPedidos = null;
+var _pedidosKnown = null;
+
 function loadPedidos() {
   var list = document.getElementById('pedidos-list');
   list.innerHTML = '<div class="loading">Carregando pedidos...</div>';
-  db.collection('pedidos').orderBy('createdAt','desc').limit(50).get()
-    .then(function(snap){
+  if (_unsubPedidos) { _unsubPedidos(); _unsubPedidos = null; }
+  _pedidosKnown = null;
+
+  _unsubPedidos = db.collection('pedidos').orderBy('createdAt','desc').limit(50)
+    .onSnapshot(function(snap) {
+      if (_pedidosKnown !== null) {
+        snap.docChanges().forEach(function(change) {
+          if (change.type === 'added' && !_pedidosKnown[change.doc.id]) {
+            playAlert();
+            showToast('🛍 Novo pedido: ' + (change.doc.data().num || ''));
+          }
+        });
+      }
+      var known = {};
+      snap.docs.forEach(function(d){ known[d.id] = true; });
+      _pedidosKnown = known;
+
       renderStats(snap);
       if (snap.empty) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">Nenhum pedido ainda</div></div>'; return; }
       list.innerHTML = snap.docs.map(function(doc){
@@ -485,16 +785,15 @@ function loadPedidos() {
           +'<span class="pedido-cliente">'+d.nome+' · '+(d.phone||'')+'</span>'
           +'<span class="badge '+st.badge+'">'+st.label+'</span>'
           +'<span class="pedido-total-txt">R$'+Number(d.total||0).toFixed(2).replace('.',',')+'</span></div>'
-          +'<div class="pedido-detail">'+itens+'<br>'+
-            (d.modo==='entrega'?'🚚 '+d.endereco:'🏪 Retirada na loja')
+          +'<div class="pedido-detail">'+itens+'<br>'
+            +(d.modo==='entrega'?'🚚 '+d.endereco:'🏪 Retirada na loja')
             +' · '+(d.pagamento==='pix'?'PIX':'Cartão')
             +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
           +'</div>'
           +'<div class="pedido-status-btns">'+btns+waLink+'</div>'
           +'</div>';
       }).join('');
-    })
-    .catch(function(e){ list.innerHTML = '<div class="loading">Erro ao carregar: '+e.message+'</div>'; });
+    }, function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
 }
 
 function renderStats(snap) {
@@ -515,7 +814,6 @@ function stat(val,label){ return '<div class="stat-card"><div class="stat-val">'
 
 function updateStatus(docId, status) {
   db.collection('pedidos').doc(docId).update({ status: status })
-    .then(function(){ loadPedidos(); })
     .catch(function(e){ alert('Erro: '+e.message); });
 }
 
