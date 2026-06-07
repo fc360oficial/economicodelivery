@@ -721,6 +721,8 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
 var C = {
@@ -733,6 +735,35 @@ var C = {
   fee: 5,
   cosmosToken: 'eK4RRJLcLhfOq5o5g7VCjA'
 };
+
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+var _fb = firebase.initializeApp({
+  apiKey: "AIzaSyCfUZxP0gNPVOAdUsGuoRNSQlfbEsNMUCA",
+  authDomain: "economico-delivery.firebaseapp.com",
+  projectId: "economico-delivery",
+  storageBucket: "economico-delivery.firebasestorage.app",
+  messagingSenderId: "561359988054",
+  appId: "1:561359988054:web:5a4c17f2ced6150ccae2f7"
+});
+var db = firebase.firestore();
+
+function loadProdutosFirestore() {
+  db.collection('produtos').where('ativo','==',true).orderBy('ordem').get()
+    .then(function(snap){
+      if (snap.empty) return;
+      P = snap.docs.map(function(doc){
+        var d = doc.data();
+        return { id: doc.id, name: d.name, cat: d.cat, price: d.price,
+          orig: d.orig||null, unit: d.unit, img: d.img||'📦', ean: d.ean||null };
+      });
+      renderAll();
+    })
+    .catch(function(){ /* usa P hardcoded como fallback */ });
+}
+
+function salvarPedidoFirestore(pedido) {
+  db.collection('pedidos').add(pedido).catch(function(){});
+}
 
 // ── BANNERS (carousel) ────────────────────────────────────────────────────────
 // Para adicionar campanha de parceiro: copie um bloco abaixo e edite os campos
@@ -872,6 +903,7 @@ function entrar(mode) {
   localStorage.setItem('ec_loc', loc);
   showScreen('sc-home');
   renderAll();
+  loadProdutosFirestore();
 }
 
 // ── CATEGORIES ───────────────────────────────────────────────────────────────
@@ -1149,6 +1181,17 @@ function confirmar() {
   var now = new Date();
   var dataStr = now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   saveOrder({ num: num, data: dataStr, itens: itens, total: fmt(sub()+frete()), modo: selMode==='entrega'?'Entrega':'Retirada' });
+  salvarPedidoFirestore({
+    num: num, nome: nome, phone: phone,
+    modo: selMode, endereco: addr||C.address,
+    pagamento: selPay_,
+    itens: Object.keys(cart).map(function(id){
+      var p=findP(id); return p?{id:id,name:p.name,qty:cart[id],price:p.price}:null;
+    }).filter(Boolean),
+    subtotal: sub(), frete: frete(), total: sub()+frete(),
+    status: 'recebido',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
   cart={}; updBadge(); showScreen('sc-success');
 }
 function copyPix() { if(navigator.clipboard&&C.pixKey) navigator.clipboard.writeText(C.pixKey).then(function(){toast('Chave PIX copiada! ✓');}); }
@@ -1238,6 +1281,7 @@ if('serviceWorker' in navigator) {
     document.getElementById('loc-val').textContent = savedLoc;
     showScreen('sc-home');
     renderAll();
+    loadProdutosFirestore();
   }
   initBanner();
 })();

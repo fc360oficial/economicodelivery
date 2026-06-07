@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FC360 Admin · Econômico Delivery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --y: #FFC600; --dark: #0d0d0d; --card: #1a1a1a;
+      --border: #2a2a2a; --text: #f0f0f0; --text2: #999;
+      --green: #22c55e; --red: #ef4444; --blue: #3b82f6;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .login-box { background: var(--card); border-radius: 20px; padding: 40px 32px; width: 100%; max-width: 360px; text-align: center; }
+    .login-logo { font-size: 32px; font-weight: 900; color: var(--y); margin-bottom: 4px; }
+    .login-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+    .login-input {
+      width: 100%; background: #111; border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 16px; color: var(--text); font-size: 15px; font-family: inherit;
+      outline: none; margin-bottom: 12px; transition: border-color .2s;
+    }
+    .login-input:focus { border-color: var(--y); }
+    .login-btn {
+      width: 100%; padding: 14px; border-radius: 10px; background: var(--y);
+      border: none; color: #1a1a1a; font-size: 15px; font-weight: 800;
+      font-family: inherit; cursor: pointer; transition: filter .15s;
+    }
+    .login-btn:active { filter: brightness(.92); }
+    .login-err { font-size: 12px; color: var(--red); margin-top: 8px; min-height: 18px; }
+
+    /* ── ADMIN LAYOUT ── */
+    #admin-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+    .admin-header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .admin-brand { font-size: 16px; font-weight: 900; color: var(--y); }
+    .admin-store { font-size: 13px; color: var(--text2); flex: 1; }
+    .admin-logout { background: none; border: 1px solid var(--border); color: var(--text2);
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+    .admin-tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; }
+    .admin-tab {
+      padding: 14px 20px; font-size: 13px; font-weight: 700; cursor: pointer;
+      color: var(--text2); border-bottom: 2px solid transparent; transition: all .2s;
+    }
+    .admin-tab.active { color: var(--y); border-bottom-color: var(--y); }
+
+    .admin-body { flex: 1; padding: 24px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .toolbar-title { font-size: 18px; font-weight: 800; flex: 1; }
+    .btn { padding: 9px 18px; border-radius: 8px; border: none; font-size: 13px;
+      font-weight: 700; font-family: inherit; cursor: pointer; transition: filter .15s; }
+    .btn:active { filter: brightness(.9); }
+    .btn-y { background: var(--y); color: #1a1a1a; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+
+    /* ── BADGES ── */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-green { background: rgba(34,197,94,.15); color: var(--green); }
+    .badge-red   { background: rgba(239,68,68,.15);  color: var(--red); }
+    .badge-blue  { background: rgba(59,130,246,.15); color: var(--blue); }
+    .badge-y     { background: rgba(255,198,0,.15);  color: var(--y); }
+    .badge-gray  { background: rgba(255,255,255,.08); color: var(--text2); }
+
+    /* ── CARDS ── */
+    .card { background: var(--card); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 10px; }
+
+    /* ── PRODUTO ROW ── */
+    .prod-row {
+      display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .prod-row:last-child { border-bottom: none; }
+    .prod-emoji { font-size: 28px; width: 44px; text-align: center; flex-shrink: 0; }
+    .prod-info { flex: 1; }
+    .prod-name-txt { font-size: 14px; font-weight: 700; }
+    .prod-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .prod-price-txt { font-size: 15px; font-weight: 800; color: var(--y); margin-right: 12px; text-align: right; }
+    .prod-actions { display: flex; gap: 6px; }
+    .toggle-btn {
+      width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer;
+      position: relative; transition: background .2s; flex-shrink: 0;
+    }
+    .toggle-btn::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s;
+    }
+    .toggle-btn.on { background: var(--green); }
+    .toggle-btn.on::after { left: 21px; }
+    .toggle-btn.off { background: #444; }
+
+    /* ── PEDIDO ROW ── */
+    .pedido-row { padding: 16px; border-bottom: 1px solid var(--border); }
+    .pedido-row:last-child { border-bottom: none; }
+    .pedido-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+    .pedido-num { font-size: 15px; font-weight: 800; }
+    .pedido-cliente { font-size: 13px; color: var(--text2); flex: 1; }
+    .pedido-total-txt { font-size: 15px; font-weight: 800; color: var(--y); }
+    .pedido-detail { font-size: 12px; color: var(--text2); margin-bottom: 10px; line-height: 1.6; }
+    .pedido-status-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal { background: var(--card); border-radius: 18px; padding: 28px; width: 100%; max-width: 440px; border: 1px solid var(--border); }
+    .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 11px; font-weight: 700; color: var(--text2); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+    .field input, .field select {
+      width: 100%; background: #111; border: 1px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--y); }
+    .field select option { background: #111; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions .btn { flex: 1; padding: 13px; }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-txt { font-size: 14px; font-weight: 600; }
+
+    /* ── STATS ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 16px 18px; }
+    .stat-val { font-size: 26px; font-weight: 900; color: var(--y); }
+    .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; font-weight: 600; }
+
+    .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">FC360</div>
+    <div class="login-sub">Painel Admin · Econômico Delivery</div>
+    <input class="login-input" type="password" id="login-pwd" placeholder="Senha de acesso" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ── ADMIN ── -->
+<div id="admin-screen">
+  <div class="admin-header">
+    <div class="admin-brand">FC360</div>
+    <div class="admin-store">Econômico Delivery · Admin</div>
+    <button class="admin-logout" onclick="logout()">Sair</button>
+  </div>
+
+  <div class="admin-tabs">
+    <div class="admin-tab active" onclick="goTab('pedidos')">📦 Pedidos</div>
+    <div class="admin-tab" onclick="goTab('produtos')">🛒 Produtos</div>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- TAB PEDIDOS -->
+    <div class="tab-panel active" id="tab-pedidos">
+      <div class="stats" id="stats-area"></div>
+      <div class="toolbar">
+        <div class="toolbar-title">Pedidos</div>
+        <button class="btn btn-outline" onclick="loadPedidos()">↻ Atualizar</button>
+      </div>
+      <div class="card" id="pedidos-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB PRODUTOS -->
+    <div class="tab-panel" id="tab-produtos">
+      <div class="toolbar">
+        <div class="toolbar-title">Produtos</div>
+        <button class="btn btn-outline btn-sm" onclick="seedProdutos()">↑ Importar padrão</button>
+        <button class="btn btn-y" onclick="openModal()">+ Novo produto</button>
+      </div>
+      <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODAL PRODUTO ── -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Novo Produto</div>
+    <div class="field"><label>Nome</label><input id="f-name" placeholder="Ex: Arroz Tio João 5kg"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Preço (R$)</label><input id="f-price" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Preço original (R$)</label><input id="f-orig" type="number" step="0.01" placeholder="Opcional"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Categoria</label>
+        <select id="f-cat">
+          <option>Hortifruti</option><option>Bebidas</option><option>Laticínios</option>
+          <option>Mercearia</option><option>Carnes</option><option>Higiene</option>
+        </select>
+      </div>
+      <div class="field"><label>Unidade</label>
+        <select id="f-unit"><option>un</option><option>kg</option><option>pct</option><option>cx</option></select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Emoji / ícone</label><input id="f-img" placeholder="🥦"></div>
+      <div class="field"><label>EAN (código de barras)</label><input id="f-ean" placeholder="7896000000000"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-y" onclick="saveProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+var ADMIN_PASS = 'economico2024';
+var PRODUTOS_PADRAO = [
+  {id:'p01',name:'Banana Prata',cat:'Hortifruti',price:5.99,orig:7.99,unit:'kg',img:'🍌',ean:null,ativo:true,ordem:1},
+  {id:'p02',name:'Tomate',cat:'Hortifruti',price:4.49,orig:null,unit:'kg',img:'🍅',ean:null,ativo:true,ordem:2},
+  {id:'p03',name:'Alface Crespa',cat:'Hortifruti',price:2.49,orig:null,unit:'un',img:'🥬',ean:null,ativo:true,ordem:3},
+  {id:'p04',name:'Cenoura',cat:'Hortifruti',price:3.99,orig:5.49,unit:'kg',img:'🥕',ean:null,ativo:true,ordem:4},
+  {id:'p05',name:'Água Mineral 1,5L',cat:'Bebidas',price:2.99,orig:3.99,unit:'un',img:'💧',ean:null,ativo:true,ordem:5},
+  {id:'p06',name:'Coca-Cola 2L',cat:'Bebidas',price:8.99,orig:null,unit:'un',img:'🥤',ean:'7894900011517',ativo:true,ordem:6},
+  {id:'p07',name:'Suco Caixinha 200ml',cat:'Bebidas',price:2.29,orig:null,unit:'un',img:'🧃',ean:null,ativo:true,ordem:7},
+  {id:'p08',name:'Cerveja Budweiser 350ml',cat:'Bebidas',price:4.49,orig:5.49,unit:'un',img:'🍺',ean:'7891991010856',ativo:true,ordem:8},
+  {id:'p09',name:'Leite Integral 1L',cat:'Laticínios',price:5.49,orig:6.99,unit:'un',img:'🥛',ean:null,ativo:true,ordem:9},
+  {id:'p10',name:'Queijo Muçarela',cat:'Laticínios',price:14.90,orig:null,unit:'un',img:'🧀',ean:null,ativo:true,ordem:10},
+  {id:'p11',name:'Manteiga 200g',cat:'Laticínios',price:9.90,orig:null,unit:'un',img:'🧈',ean:null,ativo:true,ordem:11},
+  {id:'p12',name:'Iogurte Natural',cat:'Laticínios',price:3.49,orig:null,unit:'un',img:'🍶',ean:null,ativo:true,ordem:12},
+  {id:'p13',name:'Arroz 5kg',cat:'Mercearia',price:22.90,orig:27.90,unit:'pct',img:'🍚',ean:null,ativo:true,ordem:13},
+  {id:'p14',name:'Feijão Carioca 1kg',cat:'Mercearia',price:8.49,orig:null,unit:'pct',img:'🫘',ean:null,ativo:true,ordem:14},
+  {id:'p15',name:'Macarrão Espaguete',cat:'Mercearia',price:3.99,orig:null,unit:'pct',img:'🍝',ean:null,ativo:true,ordem:15},
+  {id:'p16',name:'Óleo de Soja 900ml',cat:'Mercearia',price:7.49,orig:8.99,unit:'un',img:'🫙',ean:null,ativo:true,ordem:16},
+  {id:'p17',name:'Açúcar 1kg',cat:'Mercearia',price:4.29,orig:null,unit:'pct',img:'🍬',ean:null,ativo:true,ordem:17},
+  {id:'p18',name:'Farinha de Trigo 1kg',cat:'Mercearia',price:4.99,orig:null,unit:'pct',img:'🌾',ean:null,ativo:true,ordem:18},
+  {id:'p19',name:'Frango Inteiro',cat:'Carnes',price:17.90,orig:22.90,unit:'kg',img:'🍗',ean:null,ativo:true,ordem:19},
+  {id:'p20',name:'Carne Moída',cat:'Carnes',price:29.90,orig:null,unit:'kg',img:'🥩',ean:null,ativo:true,ordem:20},
+  {id:'p21',name:'Sabonete',cat:'Higiene',price:2.29,orig:null,unit:'un',img:'🧼',ean:null,ativo:true,ordem:21},
+  {id:'p22',name:'Shampoo 400ml',cat:'Higiene',price:10.90,orig:13.90,unit:'un',img:'🧴',ean:null,ativo:true,ordem:22},
+];
+
+// ── FIREBASE ─────────────────────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey: "AIzaSyCfUZxP0gNPVOAdUsGuoRNSQlfbEsNMUCA",
+  authDomain: "economico-delivery.firebaseapp.com",
+  projectId: "economico-delivery",
+  storageBucket: "economico-delivery.firebasestorage.app",
+  messagingSenderId: "561359988054",
+  appId: "1:561359988054:web:5a4c17f2ced6150ccae2f7"
+});
+var db = firebase.firestore();
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+function doLogin() {
+  var pwd = document.getElementById('login-pwd').value;
+  if (pwd === ADMIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'flex';
+    loadPedidos();
+    loadProdutos();
+  } else {
+    document.getElementById('login-err').textContent = 'Senha incorreta.';
+  }
+}
+function logout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-pwd').value = '';
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function goTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach(function(el,i){
+    el.classList.toggle('active', ['pedidos','produtos'][i]===tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(el){el.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// ── PEDIDOS ───────────────────────────────────────────────────────────────────
+var STATUS_LABELS = {
+  recebido:   {label:'Recebido',   badge:'badge-blue'},
+  preparando: {label:'Preparando', badge:'badge-y'},
+  saiu:       {label:'Saiu p/ entrega', badge:'badge-green'},
+  entregue:   {label:'Entregue',   badge:'badge-gray'},
+  cancelado:  {label:'Cancelado',  badge:'badge-red'},
+};
+var STATUS_NEXT = {
+  recebido:   [{s:'preparando',label:'Iniciar preparo',cls:'btn-y'},     {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
+  preparando: [{s:'saiu',      label:'Saiu p/ entrega',cls:'btn-green'}, {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
+  saiu:       [{s:'entregue',  label:'Marcar entregue',cls:'btn-green'}],
+  entregue:   [],
+  cancelado:  [],
+};
+
+function loadPedidos() {
+  var list = document.getElementById('pedidos-list');
+  list.innerHTML = '<div class="loading">Carregando pedidos...</div>';
+  db.collection('pedidos').orderBy('createdAt','desc').limit(50).get()
+    .then(function(snap){
+      renderStats(snap);
+      if (snap.empty) { list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">Nenhum pedido ainda</div></div>'; return; }
+      list.innerHTML = snap.docs.map(function(doc){
+        var d = doc.data();
+        var st = STATUS_LABELS[d.status] || STATUS_LABELS.recebido;
+        var itens = (d.itens||[]).map(function(i){ return i.qty+'x '+i.name; }).join(', ');
+        var btns = (STATUS_NEXT[d.status]||[]).map(function(b){
+          return '<button class="btn '+b.cls+' btn-sm" onclick="updateStatus(\''+doc.id+'\',\''+b.s+'\')">'+b.label+'</button>';
+        }).join('');
+        var waLink = d.phone ? '<a href="https://wa.me/55'+d.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬 WhatsApp</a>' : '';
+        return '<div class="pedido-row">'
+          +'<div class="pedido-top"><span class="pedido-num">'+d.num+'</span>'
+          +'<span class="pedido-cliente">'+d.nome+' · '+(d.phone||'')+'</span>'
+          +'<span class="badge '+st.badge+'">'+st.label+'</span>'
+          +'<span class="pedido-total-txt">R$'+Number(d.total||0).toFixed(2).replace('.',',')+'</span></div>'
+          +'<div class="pedido-detail">'+itens+'<br>'+
+            (d.modo==='entrega'?'🚚 '+d.endereco:'🏪 Retirada na loja')
+            +' · '+(d.pagamento==='pix'?'PIX':'Cartão')
+            +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
+          +'</div>'
+          +'<div class="pedido-status-btns">'+btns+waLink+'</div>'
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(e){ list.innerHTML = '<div class="loading">Erro ao carregar: '+e.message+'</div>'; });
+}
+
+function renderStats(snap) {
+  var counts = {recebido:0, preparando:0, saiu:0, entregue:0};
+  var total = 0;
+  snap.docs.forEach(function(doc){
+    var d = doc.data();
+    if (counts[d.status] !== undefined) counts[d.status]++;
+    total += d.total||0;
+  });
+  document.getElementById('stats-area').innerHTML =
+    stat(counts.recebido,'Recebidos','badge-blue')+
+    stat(counts.preparando,'Preparando','badge-y')+
+    stat(counts.saiu,'Saiu p/ entrega','badge-green')+
+    stat(snap.size,'Total hoje','badge-gray');
+}
+function stat(val,label){ return '<div class="stat-card"><div class="stat-val">'+val+'</div><div class="stat-label">'+label+'</div></div>'; }
+
+function updateStatus(docId, status) {
+  db.collection('pedidos').doc(docId).update({ status: status })
+    .then(function(){ loadPedidos(); })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
+
+// ── PRODUTOS ──────────────────────────────────────────────────────────────────
+var _editId = null;
+
+function loadProdutos() {
+  var list = document.getElementById('produtos-list');
+  list.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('produtos').orderBy('ordem').get()
+    .then(function(snap){
+      if (snap.empty) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-txt">Sem produtos. Clique em "Importar padrão" para começar.</div></div>';
+        return;
+      }
+      list.innerHTML = snap.docs.map(function(doc){
+        var d = doc.data();
+        var preco = 'R$'+Number(d.price).toFixed(2).replace('.',',');
+        var orig  = d.orig ? ' <span style="font-size:11px;color:#666;text-decoration:line-through">R$'+Number(d.orig).toFixed(2).replace('.',',')+'</span>' : '';
+        return '<div class="prod-row">'
+          +'<div class="prod-emoji">'+d.img+'</div>'
+          +'<div class="prod-info">'
+            +'<div class="prod-name-txt">'+d.name+'</div>'
+            +'<div class="prod-meta">'+d.cat+' · /'+d.unit+(d.ean?' · EAN: '+d.ean:'')+'</div>'
+          +'</div>'
+          +'<div class="prod-price-txt">'+preco+orig+'</div>'
+          +'<div class="prod-actions">'
+            +'<button class="btn btn-outline btn-sm" onclick="openModal(\''+doc.id+'\')">Editar</button>'
+            +'<button class="toggle-btn '+(d.ativo?'on':'off')+'" onclick="toggleAtivo(\''+doc.id+'\','+d.ativo+')" title="'+(d.ativo?'Ativo':'Inativo')+'"></button>'
+          +'</div>'
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
+}
+
+function toggleAtivo(docId, atual) {
+  db.collection('produtos').doc(docId).update({ ativo: !atual }).then(loadProdutos);
+}
+
+function seedProdutos() {
+  if (!confirm('Isso vai adicionar os '+PRODUTOS_PADRAO.length+' produtos padrão ao Firestore. Continuar?')) return;
+  var batch = db.batch();
+  PRODUTOS_PADRAO.forEach(function(p){ batch.set(db.collection('produtos').doc(p.id), p); });
+  batch.commit().then(function(){ alert('Produtos importados!'); loadProdutos(); }).catch(function(e){ alert('Erro: '+e.message); });
+}
+
+function openModal(docId) {
+  _editId = docId || null;
+  document.getElementById('modal-title').textContent = docId ? 'Editar Produto' : 'Novo Produto';
+  if (docId) {
+    db.collection('produtos').doc(docId).get().then(function(doc){
+      var d = doc.data();
+      document.getElementById('f-name').value  = d.name||'';
+      document.getElementById('f-price').value = d.price||'';
+      document.getElementById('f-orig').value  = d.orig||'';
+      document.getElementById('f-cat').value   = d.cat||'Mercearia';
+      document.getElementById('f-unit').value  = d.unit||'un';
+      document.getElementById('f-img').value   = d.img||'📦';
+      document.getElementById('f-ean').value   = d.ean||'';
+    });
+  } else {
+    ['f-name','f-price','f-orig','f-ean'].forEach(function(id){ document.getElementById(id).value=''; });
+    document.getElementById('f-img').value = '📦';
+  }
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+function saveProduto() {
+  var data = {
+    name:  document.getElementById('f-name').value.trim(),
+    price: parseFloat(document.getElementById('f-price').value)||0,
+    orig:  parseFloat(document.getElementById('f-orig').value)||null,
+    cat:   document.getElementById('f-cat').value,
+    unit:  document.getElementById('f-unit').value,
+    img:   document.getElementById('f-img').value||'📦',
+    ean:   document.getElementById('f-ean').value.trim()||null,
+    ativo: true,
+  };
+  if (!data.name) { alert('Informe o nome do produto.'); return; }
+  var promise = _editId
+    ? db.collection('produtos').doc(_editId).update(data)
+    : db.collection('produtos').add(Object.assign(data, {ordem: Date.now()}));
+  promise.then(function(){ closeModal(); loadProdutos(); }).catch(function(e){ alert('Erro: '+e.message); });
+}
+</script>
+</body>
+</html>
