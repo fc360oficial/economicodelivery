@@ -521,9 +521,12 @@ function baixarTemplate() {
 }
 
 function _findCol(header, alts) {
+  function asc(s){ return s.toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/ +/g," ").trim(); }
   for (var j = 0; j < header.length; j++) {
+    var h = asc(header[j]);
     for (var i = 0; i < alts.length; i++) {
-      if (header[j].indexOf(alts[i]) >= 0 || alts[i].indexOf(header[j]) >= 0) return j;
+      var a = asc(alts[i]);
+      if (a && (h.indexOf(a) >= 0 || a.indexOf(h) >= 0)) return j;
     }
   }
   return -1;
@@ -549,13 +552,13 @@ function importarCSV(input) {
     var header = linhas[0].split(sep).map(norm);
 
     var idx = {
-      nome:  _findCol(header, ['nome','descrição','descricao','description','produto','desc']),
-      price: _findCol(header, ['preço de venda','preco de venda','preço_venda','preco_venda','valor venda','vlr_venda','preço','preco','valor','price','venda']),
-      ean:   _findCol(header, ['código barras','codigo barras','código de barras','codigo de barras','cod barras','barcode','ean','codigo','cod','gtin','referencia']),
-      cat:   _findCol(header, ['categoria','cat','category','setor','grupo']),
-      orig:  _findCol(header, ['preco_original','preço original','preco original','preco_ant','original']),
-      unit:  _findCol(header, ['unidade','unit','un','und']),
-      img:   _findCol(header, ['emoji','img','icone']),
+      nome:  _findCol(header, ["descri","nome","produto","description","desc"]),
+      price: _findCol(header, ["venda","preco","valor","price","vlr"]),
+      ean:   _findCol(header, ["barras","ean","barcode","gtin","referencia"]),
+      cat:   _findCol(header, ["categoria","cat","setor","grupo"]),
+      orig:  _findCol(header, ["original","ant","de "]),
+      unit:  _findCol(header, ["unidade","unit","und"]),
+      img:   _findCol(header, ["emoji","icone","img"]),
     };
 
     if (idx.nome < 0) { csvMsg('Coluna de nome/descrição não encontrada. Colunas detectadas: ' + header.join(', '), false); return; }
