@@ -191,9 +191,13 @@
     <div class="tab-panel" id="tab-produtos">
       <div class="toolbar">
         <div class="toolbar-title">Produtos</div>
+        <button class="btn btn-outline btn-sm" onclick="baixarTemplate()">⬇ Template CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('csv-input').click()">📂 Importar CSV</button>
+        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importarCSV(this)">
         <button class="btn btn-outline btn-sm" onclick="seedProdutos()">↑ Importar padrão</button>
         <button class="btn btn-y" onclick="openModal()">+ Novo produto</button>
       </div>
+      <div id="csv-resultado" style="display:none;margin-bottom:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
       <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
     </div>
 
@@ -404,6 +408,82 @@ function loadProdutos() {
 
 function toggleAtivo(docId, atual) {
   db.collection('produtos').doc(docId).update({ ativo: !atual }).then(loadProdutos);
+}
+
+function baixarTemplate() {
+  var header = 'nome,categoria,preco,preco_original,unidade,emoji,ean\n';
+  var exemplo = [
+    'Arroz Tio João 5kg,Mercearia,24.90,29.90,pct,🍚,7896005800027',
+    'Feijão Carioca 1kg,Mercearia,8.99,,pct,🫘,',
+    'Tomate,Hortifruti,7.99,9.99,kg,🍅,',
+    'Coca-Cola 2L,Bebidas,9.90,,un,🥤,7894900011517',
+    'Frango Inteiro,Açougue,18.90,,kg,🍗,',
+  ].join('\n');
+  var blob = new Blob([header + exemplo], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'produtos_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarCSV(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var linhas = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (linhas.length < 2) { csvMsg('Arquivo vazio ou sem dados.', false); return; }
+    var header = linhas[0].toLowerCase().split(',');
+    var idx = {
+      nome:     header.indexOf('nome'),
+      cat:      header.indexOf('categoria'),
+      price:    header.indexOf('preco'),
+      orig:     header.indexOf('preco_original'),
+      unit:     header.indexOf('unidade'),
+      img:      header.indexOf('emoji'),
+      ean:      header.indexOf('ean'),
+    };
+    if (idx.nome < 0 || idx.cat < 0 || idx.price < 0) {
+      csvMsg('Cabeçalho inválido. Use o template fornecido.', false); return;
+    }
+    var produtos = [];
+    for (var i = 1; i < linhas.length; i++) {
+      var cols = linhas[i].split(',');
+      var nome = (cols[idx.nome]||'').trim();
+      if (!nome) continue;
+      var preco = parseFloat((cols[idx.price]||'').replace(',','.')) || 0;
+      var orig  = parseFloat((cols[idx.orig]||'').replace(',','.')) || null;
+      produtos.push({
+        name:  nome,
+        cat:   (cols[idx.cat]||'Mercearia').trim(),
+        price: preco,
+        orig:  orig || null,
+        unit:  (cols[idx.unit]||'un').trim(),
+        img:   (cols[idx.img]||'📦').trim() || '📦',
+        ean:   (cols[idx.ean]||'').trim() || null,
+        ativo: true,
+        ordem: Date.now() + i,
+      });
+    }
+    if (produtos.length === 0) { csvMsg('Nenhum produto válido encontrado.', false); return; }
+    if (!confirm('Importar ' + produtos.length + ' produtos? Produtos existentes não serão apagados.')) { input.value=''; return; }
+    var lote = db.batch();
+    produtos.forEach(function(p){ lote.set(db.collection('produtos').doc(), p); });
+    lote.commit()
+      .then(function(){ csvMsg('✅ ' + produtos.length + ' produtos importados com sucesso!', true); loadProdutos(); })
+      .catch(function(err){ csvMsg('Erro: ' + err.message, false); });
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function csvMsg(msg, ok) {
+  var el = document.getElementById('csv-resultado');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? '#1a3d2a' : '#3d1a1a';
+  el.style.color = ok ? '#4ade80' : '#f87171';
+  setTimeout(function(){ el.style.display = 'none'; }, 5000);
 }
 
 function seedProdutos() {
