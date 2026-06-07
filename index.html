@@ -114,20 +114,21 @@
     .cat-label { font-size: 10px; font-weight: 600; color: var(--text2); text-align: center; max-width: 64px; line-height: 1.2; }
     .cat-label.sel { color: var(--red); }
 
-    /* PROMO BANNER */
+    /* PROMO BANNER CAROUSEL */
+    .banner-wrap { margin: 14px 14px 0; }
     .promo-banner {
-      margin: 14px 14px 4px;
       border-radius: 18px;
-      background: linear-gradient(130deg, var(--red) 0%, #b8101a 100%);
       padding: 22px 20px 20px;
       color: #fff;
       position: relative;
       overflow: hidden;
-      min-height: 120px;
+      min-height: 124px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      transition: opacity .35s ease;
     }
+    .promo-banner.fading { opacity: 0; }
     .promo-banner::before {
       content: '';
       position: absolute; right: -24px; top: -24px;
@@ -141,14 +142,20 @@
       background: rgba(255,255,255,.07);
     }
     .promo-emoji { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 60px; opacity: .9; }
-    .promo-tag { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .8; margin-bottom: 5px; }
-    .promo-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; max-width: 200px; }
-    .promo-sub { font-size: 12px; opacity: .85; max-width: 190px; }
+    .promo-tag { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .75; margin-bottom: 5px; }
+    .promo-title { font-size: 20px; font-weight: 800; line-height: 1.2; margin-bottom: 4px; max-width: 205px; }
+    .promo-sub { font-size: 12px; opacity: .85; max-width: 195px; }
     .promo-pill {
-      display: inline-block; background: #fff; color: var(--red);
+      display: inline-block; background: rgba(255,255,255,.95); color: #1a1a1a;
       font-size: 11px; font-weight: 800; padding: 5px 14px;
       border-radius: 20px; margin-top: 12px; cursor: pointer;
     }
+    .banner-dots { display: flex; justify-content: center; gap: 6px; padding: 10px 0 4px; }
+    .banner-dot {
+      width: 6px; height: 6px; border-radius: 3px;
+      background: #ccc; cursor: pointer; transition: all .3s;
+    }
+    .banner-dot.active { width: 18px; background: #1a1a1a; }
 
     /* QUICK CATEGORY GRID (2×2) */
     .qcat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 4px; }
@@ -366,13 +373,10 @@
 
   <div class="home-scroll" id="home-scroll">
 
-    <!-- BANNER PROMOCIONAL -->
-    <div class="promo-banner" onclick="selectCat('Todos');scrollToOferta()">
-      <span class="promo-emoji">🛒</span>
-      <div class="promo-tag">Promoções especiais</div>
-      <div class="promo-title">Economia no seu bolso todo dia</div>
-      <div class="promo-sub">Frete grátis acima de R$80</div>
-      <div class="promo-pill">Ver ofertas →</div>
+    <!-- BANNER CAROUSEL -->
+    <div class="banner-wrap">
+      <div class="promo-banner" id="promo-banner"></div>
+      <div class="banner-dots" id="banner-dots"></div>
     </div>
 
     <!-- CATEGORIAS RÁPIDAS (2×2) -->
@@ -543,6 +547,66 @@ var C = {
   fee: 5,
   cosmosToken: 'eK4RRJLcLhfOq5o5g7VCjA'
 };
+
+// ── BANNERS (carousel) ────────────────────────────────────────────────────────
+// Para adicionar campanha de parceiro: copie um bloco abaixo e edite os campos
+var BANNERS = [
+  {
+    bg: 'linear-gradient(130deg, #c0111a 0%, #8b0000 100%)',
+    emoji: '🛒',
+    tag: 'Promoções especiais',
+    title: 'Economia no seu bolso todo dia',
+    sub: 'Frete grátis acima de R$' + C.freeAbove,
+    pill: 'Ver ofertas →',
+    action: "selectCat('Todos');scrollToOferta()"
+  },
+  {
+    bg: 'linear-gradient(130deg, #1a1a2e 0%, #0d0d1a 100%)',
+    emoji: '📢',
+    tag: 'Espaço publicitário',
+    title: 'Anuncie aqui sua campanha',
+    sub: 'Alcance nossos clientes no momento da compra',
+    pill: 'Fale conosco →',
+    action: "window.open('https://wa.me/"+C.whatsapp+"?text=Quero+anunciar+no+app+Econ%C3%B4mico+Delivery','_blank')"
+  }
+];
+
+var _curBanner = 0, _bannerTimer = null;
+
+function _renderBanner(idx) {
+  var b = BANNERS[idx];
+  var el = document.getElementById('promo-banner');
+  var dots = document.getElementById('banner-dots');
+  if (!el || !dots) return;
+  el.style.background = b.bg;
+  el.innerHTML =
+    '<span class="promo-emoji">'+b.emoji+'</span>'
+    +'<div class="promo-tag">'+b.tag+'</div>'
+    +'<div class="promo-title">'+b.title+'</div>'
+    +'<div class="promo-sub">'+b.sub+'</div>'
+    +'<div class="promo-pill" onclick="'+b.action+'">'+b.pill+'</div>';
+  dots.innerHTML = BANNERS.map(function(_,i){
+    return '<div class="banner-dot'+(i===idx?' active':'')+'" onclick="goBanner('+i+')"></div>';
+  }).join('');
+}
+
+function goBanner(idx) {
+  clearInterval(_bannerTimer);
+  var el = document.getElementById('promo-banner');
+  if (!el) return;
+  el.classList.add('fading');
+  setTimeout(function(){
+    _curBanner = idx;
+    _renderBanner(idx);
+    el.classList.remove('fading');
+  }, 350);
+  _bannerTimer = setInterval(function(){ goBanner((_curBanner+1)%BANNERS.length); }, 5000);
+}
+
+function initBanner() {
+  _renderBanner(0);
+  _bannerTimer = setInterval(function(){ goBanner((_curBanner+1)%BANNERS.length); }, 5000);
+}
 
 // ── PRODUTOS ─────────────────────────────────────────────────────────────────
 var P = [
@@ -934,6 +998,7 @@ if('serviceWorker' in navigator) {
     showScreen('sc-home');
     renderAll();
   }
+  initBanner();
 })();
 </script>
 </body>
