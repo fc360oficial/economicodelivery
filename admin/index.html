@@ -426,52 +426,93 @@ function baixarTemplate() {
   URL.revokeObjectURL(url);
 }
 
+function _findCol(header, alternativas) {
+  for (var i = 0; i < alternativas.length; i++) {
+    var idx = header.indexOf(alternativas[i]);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function _parseNum(val) {
+  if (!val) return null;
+  return parseFloat(val.replace(/[^\d,\.]/g,'').replace(',','.')) || null;
+}
+
 function importarCSV(input) {
   var file = input.files[0];
   if (!file) return;
   var reader = new FileReader();
   reader.onload = function(e) {
+    var sep = e.target.result.indexOf(';') > e.target.result.indexOf(',') ? ';' : ',';
     var linhas = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     if (linhas.length < 2) { csvMsg('Arquivo vazio ou sem dados.', false); return; }
-    var header = linhas[0].toLowerCase().split(',');
+
+    var header = linhas[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(sep).map(function(h){ return h.trim().replace(/['"]/g,''); });
+
     var idx = {
-      nome:     header.indexOf('nome'),
-      cat:      header.indexOf('categoria'),
-      price:    header.indexOf('preco'),
-      orig:     header.indexOf('preco_original'),
-      unit:     header.indexOf('unidade'),
-      img:      header.indexOf('emoji'),
-      ean:      header.indexOf('ean'),
+      nome:  _findCol(header, ['nome','descricao','description','produto','desc']),
+      price: _findCol(header, ['preco','preco de venda','preco_venda','valor','price','venda','vlr_venda','preco venda']),
+      ean:   _findCol(header, ['ean','codigo','cod','barcode','codigo de barras','gtin','referencia']),
+      cat:   _findCol(header, ['categoria','cat','category','setor','grupo']),
+      orig:  _findCol(header, ['preco_original','preco original','preco_ant','de','original']),
+      unit:  _findCol(header, ['unidade','unit','un','und']),
+      img:   _findCol(header, ['emoji','img','icone']),
     };
-    if (idx.nome < 0 || idx.cat < 0 || idx.price < 0) {
-      csvMsg('Cabeçalho inválido. Use o template fornecido.', false); return;
-    }
-    var produtos = [];
+
+    if (idx.nome < 0) { csvMsg('Coluna de nome/descrição não encontrada. Colunas detectadas: ' + header.join(', '), false); return; }
+    if (idx.price < 0) { csvMsg('Coluna de preço não encontrada. Colunas detectadas: ' + header.join(', '), false); return; }
+
+    var rows = [];
     for (var i = 1; i < linhas.length; i++) {
-      var cols = linhas[i].split(',');
-      var nome = (cols[idx.nome]||'').trim();
+      var cols = linhas[i].split(sep).map(function(c){ return c.trim().replace(/^["']|["']$/g,''); });
+      var nome = idx.nome >= 0 ? (cols[idx.nome]||'').trim() : '';
       if (!nome) continue;
-      var preco = parseFloat((cols[idx.price]||'').replace(',','.')) || 0;
-      var orig  = parseFloat((cols[idx.orig]||'').replace(',','.')) || null;
-      produtos.push({
+      var preco = _parseNum(idx.price >= 0 ? cols[idx.price] : '');
+      if (!preco) continue;
+      rows.push({
         name:  nome,
-        cat:   (cols[idx.cat]||'Mercearia').trim(),
         price: preco,
-        orig:  orig || null,
-        unit:  (cols[idx.unit]||'un').trim(),
-        img:   (cols[idx.img]||'📦').trim() || '📦',
-        ean:   (cols[idx.ean]||'').trim() || null,
+        orig:  _parseNum(idx.orig >= 0 ? cols[idx.orig] : '') || null,
+        ean:   idx.ean >= 0 ? (cols[idx.ean]||'').trim() || null : null,
+        cat:   idx.cat >= 0 ? (cols[idx.cat]||'Mercearia').trim() : 'Mercearia',
+        unit:  idx.unit >= 0 ? (cols[idx.unit]||'un').trim() : 'un',
+        img:   idx.img >= 0 ? (cols[idx.img]||'📦').trim() || '📦' : '📦',
         ativo: true,
-        ordem: Date.now() + i,
       });
     }
-    if (produtos.length === 0) { csvMsg('Nenhum produto válido encontrado.', false); return; }
-    if (!confirm('Importar ' + produtos.length + ' produtos? Produtos existentes não serão apagados.')) { input.value=''; return; }
-    var lote = db.batch();
-    produtos.forEach(function(p){ lote.set(db.collection('produtos').doc(), p); });
-    lote.commit()
-      .then(function(){ csvMsg('✅ ' + produtos.length + ' produtos importados com sucesso!', true); loadProdutos(); })
-      .catch(function(err){ csvMsg('Erro: ' + err.message, false); });
+
+    if (rows.length === 0) { csvMsg('Nenhum produto válido encontrado.', false); return; }
+
+    var temEan = rows.filter(function(r){ return r.ean; }).length;
+    var msg = rows.length + ' produtos detectados';
+    if (temEan > 0) msg += ' (' + temEan + ' com EAN — preços serão atualizados se já existirem)';
+    if (!confirm(msg + '. Continuar?')) { input.value=''; return; }
+
+    // Busca produtos existentes por EAN para atualizar em vez de duplicar
+    db.collection('produtos').get().then(function(snap) {
+      var eanMap = {};
+      snap.docs.forEach(function(doc){ if (doc.data().ean) eanMap[doc.data().ean] = doc.id; });
+
+      var lote = db.batch();
+      var atualizados = 0, criados = 0;
+      rows.forEach(function(p, i) {
+        if (p.ean && eanMap[p.ean]) {
+          // Atualiza produto existente (nome, preço, orig)
+          lote.update(db.collection('produtos').doc(eanMap[p.ean]), { name: p.name, price: p.price, orig: p.orig });
+          atualizados++;
+        } else {
+          // Cria novo
+          lote.set(db.collection('produtos').doc(), Object.assign(p, { ordem: Date.now() + i }));
+          criados++;
+        }
+      });
+
+      lote.commit()
+        .then(function(){ csvMsg('✅ ' + criados + ' criados · ' + atualizados + ' atualizados', true); loadProdutos(); })
+        .catch(function(err){ csvMsg('Erro: ' + err.message, false); });
+    });
+
     input.value = '';
   };
   reader.readAsText(file, 'UTF-8');
