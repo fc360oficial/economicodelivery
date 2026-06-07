@@ -648,13 +648,14 @@ function openModal(docId) {
       var fotoUrl = (d.img && d.img.startsWith('http')) ? d.img : '';
       document.getElementById('f-foto-url').value = fotoUrl;
       previewFoto(fotoUrl);
+      document.getElementById('modal').style.display = 'flex';
     });
   } else {
     ['f-name','f-price','f-orig','f-ean','f-foto-url'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('f-img').value = '📦';
     previewFoto('');
+    document.getElementById('modal').style.display = 'flex';
   }
-  document.getElementById('modal').style.display = 'flex';
 }
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
