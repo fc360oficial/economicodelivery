@@ -434,7 +434,10 @@ function loadProdutos() {
 }
 
 function apagarTodosProdutos() {
-  if (!confirm('Isso vai APAGAR todos os produtos do Firestore. Tem certeza?')) return;
+  var senha = prompt('Digite a senha para confirmar:');
+  if (senha === null) return;
+  if (senha !== ADMIN_PASS) { alert('Senha incorreta. Operação cancelada.'); return; }
+  if (!confirm('Isso vai APAGAR todos os produtos. Tem certeza?')) return;
   db.collection('produtos').get().then(function(snap) {
     if (snap.empty) { alert('Nenhum produto para apagar.'); return; }
     var batches = [];
