@@ -102,16 +102,16 @@
     .sec-title { font-size: 16px; font-weight: 800; }
     .sec-more { font-size: 12px; font-weight: 700; color: var(--red); }
 
-    .cats-row { display: flex; gap: 12px; overflow-x: auto; padding: 0 14px 14px; scrollbar-width: none; }
+    .cats-row { display: flex; gap: 8px; overflow-x: auto; padding: 0 14px 10px; scrollbar-width: none; }
     .cats-row::-webkit-scrollbar { display: none; }
-    .cat-item { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+    .cat-item { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
     .cat-circle {
-      width: 60px; height: 60px; border-radius: 50%;
+      width: 46px; height: 46px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 26px; border: 2px solid transparent; transition: all .15s;
+      font-size: 20px; border: 2px solid transparent; transition: all .15s;
     }
     .cat-circle.sel { border-color: var(--red); box-shadow: 0 0 0 2px rgba(227,30,36,.15); }
-    .cat-label { font-size: 10px; font-weight: 600; color: var(--text2); text-align: center; max-width: 64px; line-height: 1.2; }
+    .cat-label { font-size: 9px; font-weight: 600; color: var(--text2); text-align: center; max-width: 50px; line-height: 1.2; }
     .cat-label.sel { color: var(--red); }
 
     /* PROMO BANNER CAROUSEL */
