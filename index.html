@@ -754,14 +754,18 @@ var _fb = firebase.initializeApp({
 var db = firebase.firestore();
 
 function loadProdutosFirestore() {
-  db.collection('produtos').where('ativo','==',true).orderBy('ordem').get()
+  db.collection('produtos').orderBy('ordem').get()
     .then(function(snap){
       if (snap.empty) return;
-      P = snap.docs.map(function(doc){
+      var lista = [];
+      snap.docs.forEach(function(doc){
         var d = doc.data();
-        return { id: doc.id, name: d.name, cat: d.cat, price: d.price,
-          orig: d.orig||null, unit: d.unit, img: d.img||'📦', ean: d.ean||null };
+        if (d.ativo === false) return;
+        lista.push({ id: doc.id, name: d.name, cat: d.cat, price: d.price,
+          orig: d.orig||null, unit: d.unit, img: d.img||'📦', ean: d.ean||null });
       });
+      if (lista.length === 0) return;
+      P = lista;
       renderAll();
     })
     .catch(function(){ /* usa P hardcoded como fallback */ });
