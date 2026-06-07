@@ -426,11 +426,14 @@ function baixarTemplate() {
   URL.revokeObjectURL(url);
 }
 
-function _findCol(header, alternativas) {
-  for (var i = 0; i < alternativas.length; i++) {
-    var idx = header.indexOf(alternativas[i]);
-    if (idx >= 0) return idx;
+function _findCol(header, alts) {
+  for (var j = 0; j < header.length; j++) {
+    for (var i = 0; i < alts.length; i++) {
+      if (header[j].indexOf(alts[i]) >= 0 || alts[i].indexOf(header[j]) >= 0) return j;
+    }
   }
+  return -1;
+}
   return -1;
 }
 
@@ -450,7 +453,7 @@ function importarCSV(input) {
     var linhas = texto.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     if (linhas.length < 2) { csvMsg('Arquivo vazio ou sem dados.', false); return; }
 
-    function norm(s){ return s.toLowerCase().replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u').replace(/[ç]/g,'c').trim().replace(/['"]/g,''); }
+    function norm(s){ return (s||'').toLowerCase().replace(/[áàãâä]/g,'a').replace(/[éèêë]/g,'e').replace(/[íìîï]/g,'i').replace(/[óòõôö]/g,'o').replace(/[úùûü]/g,'u').replace(/[ç]/g,'c').replace(/[^a-z0-9 ]/g,' ').replace(/s+/g,' ').trim(); }
     var header = linhas[0].split(sep).map(norm);
 
     var idx = {
