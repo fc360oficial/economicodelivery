@@ -234,11 +234,17 @@
       <div class="field"><label>EAN (código de barras)</label><input id="f-ean" placeholder="7896000000000"></div>
     </div>
     <div class="field">
-      <label style="display:flex;align-items:center;justify-content:space-between">
+      <label style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
         Foto do produto
-        <button class="btn-foto" onclick="buscarFotoModal()" type="button">📷 Buscar pelo EAN</button>
+        <span style="display:flex;gap:6px">
+          <button class="btn-foto" onclick="buscarFotoModal()" type="button">📷 Buscar pelo EAN</button>
+          <label class="btn-foto" style="cursor:pointer;margin:0">📁 Upload
+            <input type="file" id="f-foto-upload" accept="image/*" style="display:none" onchange="uploadFoto(this)">
+          </label>
+        </span>
       </label>
-      <input id="f-foto-url" placeholder="URL da foto (ou use Buscar pelo EAN)" oninput="previewFoto(this.value)" style="margin-top:6px">
+      <input id="f-foto-url" placeholder="URL da foto" oninput="previewFoto(this.value)" style="margin-top:6px">
+      <div id="f-foto-uploading" style="display:none;font-size:12px;color:var(--y);margin-top:6px">⏳ Enviando foto...</div>
       <img id="f-foto-preview" class="foto-preview">
     </div>
     <div class="modal-actions">
@@ -250,6 +256,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
 var ADMIN_PASS = 'economico2024';
@@ -499,12 +506,33 @@ function buscarFotoModal() {
 
 function previewFoto(url) {
   var img = document.getElementById('f-foto-preview');
-  if (url && url.startsWith('http')) {
+  if (url && (url.startsWith('http') || url.startsWith('data:'))) {
     img.src = url;
     img.style.display = 'block';
   } else {
     img.style.display = 'none';
   }
+}
+
+function uploadFoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var storage = firebase.storage();
+  var nome = (_editId || ('novo_' + Date.now())) + '_' + file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  var ref = storage.ref('produtos/' + nome);
+  document.getElementById('f-foto-uploading').style.display = 'block';
+  document.getElementById('f-foto-preview').style.display = 'none';
+  ref.put(file).then(function(snap) {
+    return snap.ref.getDownloadURL();
+  }).then(function(url) {
+    document.getElementById('f-foto-url').value = url;
+    document.getElementById('f-foto-uploading').style.display = 'none';
+    previewFoto(url);
+  }).catch(function(err) {
+    document.getElementById('f-foto-uploading').style.display = 'none';
+    alert('Erro no upload: ' + err.message);
+  });
+  input.value = '';
 }
 
 function baixarTemplate() {
@@ -670,7 +698,7 @@ function saveProduto() {
   var data = {
     name:  document.getElementById('f-name').value.trim(),
     price: parseFloat(document.getElementById('f-price').value)||0,
-    orig:  parseFloat(document.getElementById('f-orig').value)||null,
+    orig:  document.getElementById('f-orig').value.trim() ? parseFloat(document.getElementById('f-orig').value) : null,
     cat:   document.getElementById('f-cat').value,
     unit:  document.getElementById('f-unit').value,
     img:   document.getElementById('f-foto-url').value.trim() || document.getElementById('f-img').value||'📦',
