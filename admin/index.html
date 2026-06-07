@@ -151,6 +151,22 @@
     .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; font-weight: 600; }
 
     .loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+
+    /* ── BANNERS ── */
+    .banner-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .banner-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .banner-card img { width: 100%; aspect-ratio: 1080/400; object-fit: cover; display: block; }
+    .banner-card-foot { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; }
+    .banner-card-ord { font-size: 11px; color: var(--text2); }
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 32px;
+      text-align: center; cursor: pointer; transition: border-color .2s; margin-bottom: 20px;
+    }
+    .upload-area:hover { border-color: var(--y); }
+    .upload-area-icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-area-txt { font-size: 13px; color: var(--text2); }
+    .upload-area-hint { font-size: 11px; color: #555; margin-top: 4px; }
+    #banner-uploading { display:none; font-size:13px; color:var(--y); margin-bottom:12px; }
   </style>
 </head>
 <body>
@@ -177,6 +193,7 @@
   <div class="admin-tabs">
     <div class="admin-tab active" onclick="goTab('pedidos')">📦 Pedidos</div>
     <div class="admin-tab" onclick="goTab('produtos')">🛒 Produtos</div>
+    <div class="admin-tab" onclick="goTab('banners')">🖼 Banners</div>
   </div>
 
   <div class="admin-body">
@@ -205,6 +222,22 @@
       <div id="csv-resultado" style="display:none;margin-bottom:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
       <input id="prod-busca" type="text" placeholder="🔍 Buscar por descrição ou EAN..." oninput="renderProdutos()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB BANNERS -->
+    <div class="tab-panel" id="tab-banners">
+      <div class="toolbar">
+        <div class="toolbar-title">Banners do Carrossel</div>
+      </div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Tamanho recomendado: <strong style="color:var(--y)">1080 × 400 px</strong> · Os banners aparecem em rotação automática no app.</p>
+      <div id="banner-uploading">⏳ Enviando banner...</div>
+      <div class="upload-area" onclick="document.getElementById('banner-input').click()">
+        <input type="file" id="banner-input" accept="image/*" style="display:none" onchange="uploadBanner(this)">
+        <div class="upload-area-icon">🖼</div>
+        <div class="upload-area-txt">Clique para adicionar novo banner</div>
+        <div class="upload-area-hint">JPG ou PNG · 1080 × 400 px</div>
+      </div>
+      <div class="banner-grid" id="banners-list"><div class="loading">Carregando...</div></div>
     </div>
 
   </div>
@@ -305,6 +338,7 @@ function entrarAdmin() {
   goTab(aba);
   loadPedidos();
   loadProdutos();
+  loadBanners();
 }
 function doLogin() {
   var pwd = document.getElementById('login-pwd').value;
@@ -326,11 +360,65 @@ if (sessionStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function goTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(function(el,i){
-    el.classList.toggle('active', ['pedidos','produtos'][i]===tab);
+    el.classList.toggle('active', ['pedidos','produtos','banners'][i]===tab);
   });
   document.querySelectorAll('.tab-panel').forEach(function(el){el.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.add('active');
   sessionStorage.setItem('ec_admin_tab', tab);
+}
+
+// ── BANNERS ───────────────────────────────────────────────────────────────────
+function loadBanners() {
+  var el = document.getElementById('banners-list');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('banners').orderBy('ordem').get().then(function(snap) {
+    if (snap.empty) { el.innerHTML = '<div class="empty"><div class="empty-icon">🖼</div><div class="empty-txt">Nenhum banner. Adicione um acima.</div></div>'; return; }
+    el.innerHTML = snap.docs.map(function(doc) {
+      var d = doc.data();
+      return '<div class="banner-card">'
+        +'<img src="'+d.img+'" onerror="this.style.background=\'#222\'">'
+        +'<div class="banner-card-foot">'
+          +'<span class="banner-card-ord">Banner</span>'
+          +'<button class="btn btn-outline btn-sm" onclick="deleteBanner(\''+doc.id+'\')" style="border-color:var(--red);color:var(--red)">🗑 Remover</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }).catch(function(e){ el.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
+}
+
+function uploadBanner(input) {
+  var file = input.files[0];
+  if (!file) return;
+  document.getElementById('banner-uploading').style.display = 'block';
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    var form = new FormData();
+    form.append('key', IMGBB_KEY);
+    form.append('image', base64);
+    fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form })
+      .then(function(r){ return r.json(); })
+      .then(function(res) {
+        if (!res.data || !res.data.url) throw new Error('Resposta inválida');
+        var url = res.data.display_url || res.data.url;
+        return db.collection('banners').add({ img: url, ordem: Date.now(), ativo: true });
+      })
+      .then(function() {
+        document.getElementById('banner-uploading').style.display = 'none';
+        loadBanners();
+      })
+      .catch(function(err) {
+        document.getElementById('banner-uploading').style.display = 'none';
+        alert('Erro: ' + err.message);
+      });
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function deleteBanner(docId) {
+  if (!confirm('Remover este banner?')) return;
+  db.collection('banners').doc(docId).delete().then(loadBanners);
 }
 
 // ── PEDIDOS ───────────────────────────────────────────────────────────────────

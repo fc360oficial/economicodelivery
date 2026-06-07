@@ -118,28 +118,25 @@
     .banner-wrap { margin: 14px 14px 0; }
     .promo-banner {
       border-radius: 18px;
-      padding: 20px 20px 18px;
-      color: #fff;
       position: relative;
       overflow: hidden;
-      height: 160px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
       transition: opacity .35s ease;
+      background: linear-gradient(130deg, #c0111a 0%, #8b0000 100%);
+    }
+    .promo-banner.img-mode { height: auto; }
+    .promo-banner.img-mode img { width: 100%; aspect-ratio: 1080/400; object-fit: cover; display: block; border-radius: 18px; }
+    .promo-banner.txt-mode {
+      padding: 20px 20px 18px; color: #fff; height: 160px;
+      display: flex; flex-direction: column; justify-content: center;
     }
     .promo-banner.fading { opacity: 0; }
-    .promo-banner::before {
-      content: '';
-      position: absolute; right: -24px; top: -24px;
-      width: 130px; height: 130px; border-radius: 50%;
-      background: rgba(255,255,255,.1);
+    .promo-banner.txt-mode::before {
+      content: ''; position: absolute; right: -24px; top: -24px;
+      width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,.1);
     }
-    .promo-banner::after {
-      content: '';
-      position: absolute; right: 20px; bottom: -30px;
-      width: 90px; height: 90px; border-radius: 50%;
-      background: rgba(255,255,255,.07);
+    .promo-banner.txt-mode::after {
+      content: ''; position: absolute; right: 20px; bottom: -30px;
+      width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,.07);
     }
     .promo-emoji { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 60px; opacity: .9; }
     .promo-tag { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: .75; margin-bottom: 5px; }
@@ -771,28 +768,17 @@ function salvarPedidoFirestore(pedido) {
 }
 
 // ── BANNERS (carousel) ────────────────────────────────────────────────────────
-// Para adicionar campanha de parceiro: copie um bloco abaixo e edite os campos
-var BANNERS = [
+var BANNERS_FALLBACK = [
   {
+    type: 'txt',
     bg: 'linear-gradient(130deg, #c0111a 0%, #8b0000 100%)',
-    emoji: '🛒',
-    tag: 'Promoções especiais',
+    emoji: '🛒', tag: 'Promoções especiais',
     title: 'Economia no seu bolso todo dia',
     sub: 'Frete grátis acima de R$' + C.freeAbove,
-    pill: 'Ver ofertas →',
-    action: "selectCat('Todos');scrollToOferta()"
-  },
-  {
-    bg: 'linear-gradient(130deg, #1a1a2e 0%, #0d0d1a 100%)',
-    emoji: '📢',
-    tag: 'Espaço publicitário',
-    title: 'Anuncie aqui sua campanha',
-    sub: 'Alcance clientes no momento da compra',
-    pill: 'Fale conosco →',
-    action: "window.open('https://wa.me/"+C.whatsapp+"?text=Quero+anunciar+no+app+Econ%C3%B4mico+Delivery','_blank')"
+    pill: 'Ver ofertas →', action: "selectCat('Todos');scrollToOferta()"
   }
 ];
-
+var BANNERS = BANNERS_FALLBACK;
 var _curBanner = 0, _bannerTimer = null;
 
 function _renderBanner(idx) {
@@ -800,13 +786,20 @@ function _renderBanner(idx) {
   var el = document.getElementById('promo-banner');
   var dots = document.getElementById('banner-dots');
   if (!el || !dots) return;
-  el.style.background = b.bg;
-  el.innerHTML =
-    '<span class="promo-emoji">'+b.emoji+'</span>'
-    +'<div class="promo-tag">'+b.tag+'</div>'
-    +'<div class="promo-title">'+b.title+'</div>'
-    +'<div class="promo-sub">'+b.sub+'</div>'
-    +'<div class="promo-pill" onclick="'+b.action+'">'+b.pill+'</div>';
+  if (b.type === 'img') {
+    el.className = 'promo-banner img-mode';
+    el.style.background = '';
+    el.innerHTML = '<img src="'+b.img+'" onerror="this.parentNode.className=\'promo-banner txt-mode\'">';
+  } else {
+    el.className = 'promo-banner txt-mode';
+    el.style.background = b.bg;
+    el.innerHTML =
+      '<span class="promo-emoji">'+b.emoji+'</span>'
+      +'<div class="promo-tag">'+b.tag+'</div>'
+      +'<div class="promo-title">'+b.title+'</div>'
+      +'<div class="promo-sub">'+b.sub+'</div>'
+      +'<div class="promo-pill" onclick="'+b.action+'">'+b.pill+'</div>';
+  }
   dots.innerHTML = BANNERS.map(function(_,i){
     return '<div class="banner-dot'+(i===idx?' active':'')+'" onclick="goBanner('+i+')"></div>';
   }).join('');
@@ -828,6 +821,19 @@ function goBanner(idx) {
 function initBanner() {
   _renderBanner(0);
   _bannerTimer = setInterval(function(){ goBanner((_curBanner+1)%BANNERS.length); }, 5000);
+}
+
+function loadBannersFirestore() {
+  db.collection('banners').where('ativo','==',true).orderBy('ordem').get()
+    .then(function(snap) {
+      if (snap.empty) return;
+      BANNERS = snap.docs.map(function(doc){ return { type: 'img', img: doc.data().img }; });
+      clearInterval(_bannerTimer);
+      _curBanner = 0;
+      _renderBanner(0);
+      _bannerTimer = setInterval(function(){ goBanner((_curBanner+1)%BANNERS.length); }, 5000);
+    })
+    .catch(function(){});
 }
 
 // ── PRODUTOS ─────────────────────────────────────────────────────────────────
@@ -1292,6 +1298,7 @@ if('serviceWorker' in navigator) {
     loadProdutosFirestore();
   }
   initBanner();
+  loadBannersFirestore();
 })();
 </script>
 </body>
