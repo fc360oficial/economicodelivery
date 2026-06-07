@@ -300,6 +300,8 @@ var db = firebase.firestore();
 function entrarAdmin() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'flex';
+  var aba = sessionStorage.getItem('ec_admin_tab') || 'pedidos';
+  goTab(aba);
   loadPedidos();
   loadProdutos();
 }
@@ -327,6 +329,7 @@ function goTab(tab) {
   });
   document.querySelectorAll('.tab-panel').forEach(function(el){el.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.add('active');
+  sessionStorage.setItem('ec_admin_tab', tab);
 }
 
 // ── PEDIDOS ───────────────────────────────────────────────────────────────────
