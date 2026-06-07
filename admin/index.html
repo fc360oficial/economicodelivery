@@ -368,22 +368,50 @@ function goTab(tab) {
 }
 
 // ── BANNERS ───────────────────────────────────────────────────────────────────
+var _bannersCache = [];
+
 function loadBanners() {
   var el = document.getElementById('banners-list');
   el.innerHTML = '<div class="loading">Carregando...</div>';
   db.collection('banners').orderBy('ordem').get().then(function(snap) {
-    if (snap.empty) { el.innerHTML = '<div class="empty"><div class="empty-icon">🖼</div><div class="empty-txt">Nenhum banner. Adicione um acima.</div></div>'; return; }
-    el.innerHTML = snap.docs.map(function(doc) {
-      var d = doc.data();
-      return '<div class="banner-card">'
-        +'<img src="'+d.img+'" onerror="this.style.background=\'#222\'">'
-        +'<div class="banner-card-foot">'
-          +'<span class="banner-card-ord">Banner</span>'
-          +'<button class="btn btn-outline btn-sm" onclick="deleteBanner(\''+doc.id+'\')" style="border-color:var(--red);color:var(--red)">🗑 Remover</button>'
-        +'</div>'
-        +'</div>';
-    }).join('');
+    if (snap.empty) {
+      _bannersCache = [];
+      el.innerHTML = '<div class="empty"><div class="empty-icon">🖼</div><div class="empty-txt">Nenhum banner. Adicione um acima.</div></div>';
+      return;
+    }
+    _bannersCache = snap.docs.map(function(doc) {
+      return { id: doc.id, img: doc.data().img, ordem: doc.data().ordem };
+    });
+    renderBanners();
   }).catch(function(e){ el.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
+}
+
+function renderBanners() {
+  var el = document.getElementById('banners-list');
+  el.innerHTML = _bannersCache.map(function(b, i) {
+    var total = _bannersCache.length;
+    return '<div class="banner-card">'
+      +'<img src="'+b.img+'" onerror="this.style.background=\'#222\'">'
+      +'<div class="banner-card-foot">'
+        +'<span class="banner-card-ord">'+(i+1)+'º de '+total+'</span>'
+        +'<div style="display:flex;gap:6px;align-items:center">'
+          +(i>0?'<button class="btn btn-outline btn-sm" onclick="moverBanner('+i+',-1)" title="Mover para cima">↑</button>':'<span style="width:34px"></span>')
+          +(i<total-1?'<button class="btn btn-outline btn-sm" onclick="moverBanner('+i+',1)" title="Mover para baixo">↓</button>':'<span style="width:34px"></span>')
+          +'<button class="btn btn-outline btn-sm" onclick="deleteBanner(\''+b.id+'\')" style="border-color:var(--red);color:var(--red)">🗑</button>'
+        +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function moverBanner(idx, dir) {
+  var outro = idx + dir;
+  if (outro < 0 || outro >= _bannersCache.length) return;
+  var a = _bannersCache[idx], b = _bannersCache[outro];
+  var batch = db.batch();
+  batch.update(db.collection('banners').doc(a.id), { ordem: b.ordem });
+  batch.update(db.collection('banners').doc(b.id), { ordem: a.ordem });
+  batch.commit().then(loadBanners);
 }
 
 function uploadBanner(input) {
