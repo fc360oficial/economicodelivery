@@ -824,10 +824,14 @@ function initBanner() {
 }
 
 function loadBannersFirestore() {
-  db.collection('banners').where('ativo','==',true).orderBy('ordem').get()
+  db.collection('banners').orderBy('ordem').get()
     .then(function(snap) {
       if (snap.empty) return;
-      BANNERS = snap.docs.map(function(doc){ return { type: 'img', img: doc.data().img }; });
+      var lista = snap.docs
+        .filter(function(doc){ return doc.data().ativo !== false; })
+        .map(function(doc){ return { type: 'img', img: doc.data().img }; });
+      if (!lista.length) return;
+      BANNERS = lista;
       clearInterval(_bannerTimer);
       _curBanner = 0;
       _renderBanner(0);
