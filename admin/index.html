@@ -747,22 +747,26 @@ var STATUS_NEXT = {
   cancelado:  [],
 };
 
-var _unsubPedidos = null;
 var _pedidosKnown = null;
+var _pedidosTimer = null;
 
 function loadPedidos() {
   var list = document.getElementById('pedidos-list');
   list.innerHTML = '<div class="loading">Carregando pedidos...</div>';
-  if (_unsubPedidos) { _unsubPedidos(); _unsubPedidos = null; }
-  _pedidosKnown = null;
+  if (_pedidosTimer) { clearInterval(_pedidosTimer); _pedidosTimer = null; }
+  _fetchPedidos();
+  _pedidosTimer = setInterval(_fetchPedidos, 30000);
+}
 
-  _unsubPedidos = db.collection('pedidos').orderBy('createdAt','desc').limit(50)
-    .onSnapshot(function(snap) {
+function _fetchPedidos() {
+  var list = document.getElementById('pedidos-list');
+  db.collection('pedidos').orderBy('createdAt','desc').limit(50).get()
+    .then(function(snap) {
       if (_pedidosKnown !== null) {
-        snap.docChanges().forEach(function(change) {
-          if (change.type === 'added' && !_pedidosKnown[change.doc.id]) {
+        snap.docs.forEach(function(doc) {
+          if (!_pedidosKnown[doc.id]) {
             playAlert();
-            showToast('🛍 Novo pedido: ' + (change.doc.data().num || ''));
+            showToast('🛍 Novo pedido: ' + (doc.data().num || ''));
           }
         });
       }
@@ -793,7 +797,8 @@ function loadPedidos() {
           +'<div class="pedido-status-btns">'+btns+waLink+'</div>'
           +'</div>';
       }).join('');
-    }, function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
+    })
+    .catch(function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+' · <button class="btn btn-outline btn-sm" onclick="loadPedidos()">Tentar novamente</button></div>'; });
 }
 
 function renderStats(snap) {
