@@ -212,7 +212,7 @@
   <div class="login-box">
     <div class="login-logo">FC360</div>
     <div class="login-sub">Painel Admin · Econômico Delivery</div>
-    <input class="login-input" type="password" id="login-pwd" placeholder="Senha de acesso" onkeydown="if(event.key==='Enter')doLogin()">
+    <input class="login-input" type="password" id="login-pwd" placeholder="Senha de acesso" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="login-err"></div>
   </div>
@@ -261,7 +261,7 @@
         <button class="btn btn-outline btn-sm" onclick="apagarTodosProdutos()" style="border-color:#c0392b;color:#c0392b">🗑 Apagar todos</button>
       </div>
       <div id="csv-resultado" style="display:none;margin-bottom:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
-      <input id="prod-busca" type="text" placeholder="🔍 Buscar por descrição ou EAN..." oninput="renderProdutos()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
+      <input id="prod-busca" type="text" placeholder="🔍 Buscar por descrição ou EAN..." autocomplete="off" oninput="renderProdutos()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
     </div>
 
@@ -272,7 +272,7 @@
         <button class="btn btn-outline btn-sm" onclick="exportarClientesCSV()">⬇ Exportar CSV</button>
         <button class="btn btn-outline btn-sm" onclick="loadClientes()">↻ Atualizar</button>
       </div>
-      <input id="cli-busca" type="text" placeholder="🔍 Buscar por nome, celular ou email..." oninput="renderClientes()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
+      <input id="cli-busca" type="text" placeholder="🔍 Buscar por nome, celular ou email..." autocomplete="off" oninput="renderClientes()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="stats" id="cli-stats"></div>
       <div class="card" id="clientes-list"><div class="loading">Carregando...</div></div>
     </div>
