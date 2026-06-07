@@ -905,7 +905,7 @@ function showLoginView(id) {
 }
 
 function continuarSemConta() {
-  localStorage.setItem('ec_visitante','1');
+  sessionStorage.setItem('ec_visitante','1');
   showScreen('sc-splash');
 }
 
@@ -919,7 +919,7 @@ function fazerLogin() {
     var d = doc.data();
     setCliente({ nome: d.nome, phone: d.phone, endereco: d.endereco || '' });
     db.collection('clientes').doc(phone).update({ ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp() });
-    localStorage.removeItem('ec_visitante');
+    sessionStorage.removeItem('ec_visitante');
     showScreen('sc-splash');
   }).catch(function(){ err.textContent='Erro ao buscar. Tente novamente.'; });
 }
@@ -935,7 +935,7 @@ function criarConta() {
   var data = { nome:nome, phone:phone, endereco:end, criadoEm: firebase.firestore.FieldValue.serverTimestamp(), ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp() };
   db.collection('clientes').doc(phone).set(data, {merge:true}).then(function() {
     setCliente({ nome:nome, phone:phone, endereco:end });
-    localStorage.removeItem('ec_visitante');
+    sessionStorage.removeItem('ec_visitante');
     showScreen('sc-splash');
   }).catch(function(e){ err.textContent='Erro: '+e.message; });
 }
@@ -1574,7 +1574,7 @@ function loadCategoriasFirestore() {
   var savedScreen = localStorage.getItem('ec_screen');
   var savedMode   = localStorage.getItem('ec_mode');
   var savedLoc    = localStorage.getItem('ec_loc');
-  var temConta    = !!getCliente() || localStorage.getItem('ec_visitante') === '1';
+  var temConta    = !!getCliente() || sessionStorage.getItem('ec_visitante') === '1';
 
   if (savedScreen === 'sc-home' && savedMode && savedLoc && temConta) {
     selMode = savedMode;
