@@ -228,6 +228,7 @@
   <div class="admin-tabs" style="overflow-x:auto;white-space:nowrap">
     <div class="admin-tab active" onclick="goTab('pedidos')">📦 Pedidos</div>
     <div class="admin-tab" onclick="goTab('produtos')">🛒 Produtos</div>
+    <div class="admin-tab" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="admin-tab" onclick="goTab('banners')">🖼 Banners</div>
     <div class="admin-tab" onclick="goTab('relatorios')">📊 Relatórios</div>
     <div class="admin-tab" onclick="goTab('cupons')">🏷 Cupons</div>
@@ -261,6 +262,17 @@
       <div id="csv-resultado" style="display:none;margin-bottom:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
       <input id="prod-busca" type="text" placeholder="🔍 Buscar por descrição ou EAN..." oninput="renderProdutos()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
+    </div>
+
+    <!-- TAB CLIENTES -->
+    <div class="tab-panel" id="tab-clientes">
+      <div class="toolbar">
+        <div class="toolbar-title">Clientes</div>
+        <button class="btn btn-outline btn-sm" onclick="loadClientes()">↻ Atualizar</button>
+      </div>
+      <input id="cli-busca" type="text" placeholder="🔍 Buscar por nome ou celular..." oninput="renderClientes()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
+      <div class="stats" id="cli-stats"></div>
+      <div class="card" id="clientes-list"><div class="loading">Carregando...</div></div>
     </div>
 
     <!-- TAB BANNERS -->
@@ -505,7 +517,7 @@ function logout() {
 if (sessionStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-var _TABS = ['pedidos','produtos','banners','relatorios','cupons','categorias','config'];
+var _TABS = ['pedidos','produtos','clientes','banners','relatorios','cupons','categorias','config'];
 function goTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(function(el,i){
     el.classList.toggle('active', _TABS[i]===tab);
@@ -516,6 +528,7 @@ function goTab(tab) {
   if (tab==='relatorios') loadRelatorios();
   if (tab==='cupons') loadCupons();
   if (tab==='categorias') loadCategorias();
+  if (tab==='clientes') loadClientes();
 }
 
 // ── BANNERS ───────────────────────────────────────────────────────────────────
@@ -598,6 +611,39 @@ function uploadBanner(input) {
 function deleteBanner(docId) {
   if (!confirm('Remover este banner?')) return;
   db.collection('banners').doc(docId).delete().then(loadBanners);
+}
+
+// ── CLIENTES ─────────────────────────────────────────────────────────────────
+var _clientesCache = [];
+function loadClientes() {
+  var el = document.getElementById('clientes-list');
+  el.innerHTML = '<div class="loading">Carregando...</div>';
+  db.collection('clientes').orderBy('criadoEm','desc').get().then(function(snap) {
+    _clientesCache = snap.docs.map(function(doc){ return Object.assign({_id:doc.id}, doc.data()); });
+    document.getElementById('cli-stats').innerHTML =
+      '<div class="stat-card"><div class="stat-val">'+snap.size+'</div><div class="stat-label">Clientes cadastrados</div></div>';
+    renderClientes();
+  }).catch(function(e){ el.innerHTML='<div class="loading">Erro: '+e.message+'</div>'; });
+}
+function renderClientes() {
+  var el = document.getElementById('clientes-list');
+  var q = (document.getElementById('cli-busca').value||'').toLowerCase().trim();
+  var lista = q ? _clientesCache.filter(function(c){
+    return (c.nome||'').toLowerCase().indexOf(q)>=0 || (c.phone||'').indexOf(q)>=0;
+  }) : _clientesCache;
+  if (!lista.length) { el.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">'+(q?'Nenhum cliente encontrado.':'Nenhum cliente cadastrado ainda.')+'</div></div>'; return; }
+  el.innerHTML = lista.map(function(c){
+    var dt = c.criadoEm && c.criadoEm.toDate ? c.criadoEm.toDate().toLocaleDateString('pt-BR') : '—';
+    return '<div class="prod-row">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:#FFC600;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>'
+      +'<div class="prod-info">'
+        +'<div class="prod-name-txt">'+c.nome+'</div>'
+        +'<div class="prod-meta">📱 '+(c.phone||'—')+(c.endereco?' · 📍 '+c.endereco:'')+'</div>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--text2);text-align:right;margin-right:8px">Desde<br>'+dt+'</div>'
+      +'<a href="https://wa.me/55'+(c.phone||'').replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬</a>'
+      +'</div>';
+  }).join('');
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
