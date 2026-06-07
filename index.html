@@ -1112,8 +1112,11 @@ function renderCart() {
   var hint=fr>0&&selMode!=='retirada'?'<div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:6px">Faltam '+fmt(C.freeAbove-s)+' para frete grátis</div>':'';
   var items=ids.map(function(id){
     var p=findP(id); if(!p) return '';
+    var ciImg=(p.img&&(p.img.startsWith('http')||p.img.startsWith('//')))
+      ?'<img src="'+p.img+'" style="width:100%;height:100%;object-fit:contain;border-radius:6px" onerror="this.parentNode.innerHTML=\'📦\'">'
+      :(p.img||'📦');
     return '<div class="cart-item">'
-      +'<div class="ci-img">'+p.img+'</div>'
+      +'<div class="ci-img">'+ciImg+'</div>'
       +'<div class="ci-info"><div class="ci-name">'+p.name+'</div><div class="ci-price">'+fmt(p.price*cart[id])+'</div></div>'
       +'<div class="ci-qty">'
         +'<button onclick="chQty(\''+id+'\',-1)">−</button>'
