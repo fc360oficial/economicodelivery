@@ -290,22 +290,28 @@ firebase.initializeApp({
 var db = firebase.firestore();
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
+function entrarAdmin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'flex';
+  loadPedidos();
+  loadProdutos();
+}
 function doLogin() {
   var pwd = document.getElementById('login-pwd').value;
   if (pwd === ADMIN_PASS) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'flex';
-    loadPedidos();
-    loadProdutos();
+    sessionStorage.setItem('ec_admin', '1');
+    entrarAdmin();
   } else {
     document.getElementById('login-err').textContent = 'Senha incorreta.';
   }
 }
 function logout() {
+  sessionStorage.removeItem('ec_admin');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('admin-screen').style.display = 'none';
   document.getElementById('login-pwd').value = '';
 }
+if (sessionStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function goTab(tab) {
