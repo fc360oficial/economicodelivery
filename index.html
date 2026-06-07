@@ -479,6 +479,10 @@
     <input class="login-input" type="tel" id="lc-phone" placeholder="(81) 99999-9999">
     <div class="login-label">Endereço principal</div>
     <input class="login-input" type="text" id="lc-end" placeholder="Rua, número, bairro">
+    <div class="login-label">E-mail <span style="font-size:10px;color:#999">(opcional)</span></div>
+    <input class="login-input" type="email" id="lc-email" placeholder="seu@email.com">
+    <div class="login-label">Data de nascimento <span style="font-size:10px;color:#999">(opcional)</span></div>
+    <input class="login-input" type="date" id="lc-nasc">
     <div class="login-err" id="lc-err"></div>
     <div class="login-btns">
       <button class="login-btn login-btn-primary" onclick="criarConta()">Criar conta →</button>
@@ -601,17 +605,13 @@
   <div class="menu-hdr">
     <button class="menu-close" onclick="closeMenu()">✕</button>
     <img src="./logo.png?v=3" class="menu-hdr-logo" onerror="this.style.display='none'">
-    <div class="menu-hdr-addr">📍 Rua Antonio Luiz Soares, 217</div>
+    <div id="menu-user-info" style="margin-top:4px"></div>
   </div>
 
   <div class="menu-body">
-    <div class="menu-section">
+    <div class="menu-section" id="menu-section-conta">
       <div class="menu-section-label">Minha conta</div>
-      <div class="menu-item" onclick="openSub('sub-pedidos')">
-        <span class="mi-icon">📦</span>
-        <div class="mi-text"><div class="mi-title">Meus Pedidos</div><div class="mi-sub">Histórico dos seus pedidos</div></div>
-        <span class="mi-arrow">›</span>
-      </div>
+      <div id="menu-conta-items"></div>
     </div>
 
     <div class="menu-section">
@@ -920,7 +920,12 @@ function fazerLogin() {
     setCliente({ nome: d.nome, phone: d.phone, endereco: d.endereco || '' });
     db.collection('clientes').doc(phone).update({ ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp() });
     sessionStorage.removeItem('ec_visitante');
-    showScreen('sc-splash');
+    if (sessionStorage.getItem('ec_checkout_pendente') === '1') {
+      sessionStorage.removeItem('ec_checkout_pendente');
+      goCheckout();
+    } else {
+      showScreen('sc-splash');
+    }
   }).catch(function(){ err.textContent='Erro ao buscar. Tente novamente.'; });
 }
 
@@ -928,15 +933,24 @@ function criarConta() {
   var nome  = document.getElementById('lc-nome').value.trim();
   var phone = document.getElementById('lc-phone').value.replace(/\D/g,'');
   var end   = document.getElementById('lc-end').value.trim();
+  var email = document.getElementById('lc-email').value.trim();
+  var nasc  = document.getElementById('lc-nasc').value;
   var err   = document.getElementById('lc-err');
   if (!nome) { err.textContent='Informe seu nome.'; return; }
   if (phone.length < 10) { err.textContent='Informe um celular válido.'; return; }
   err.textContent='';
   var data = { nome:nome, phone:phone, endereco:end, criadoEm: firebase.firestore.FieldValue.serverTimestamp(), ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp() };
+  if (email) data.email = email;
+  if (nasc)  data.nascimento = nasc;
   db.collection('clientes').doc(phone).set(data, {merge:true}).then(function() {
     setCliente({ nome:nome, phone:phone, endereco:end });
     sessionStorage.removeItem('ec_visitante');
-    showScreen('sc-splash');
+    if (sessionStorage.getItem('ec_checkout_pendente') === '1') {
+      sessionStorage.removeItem('ec_checkout_pendente');
+      goCheckout();
+    } else {
+      showScreen('sc-splash');
+    }
   }).catch(function(e){ err.textContent='Erro: '+e.message; });
 }
 
@@ -1342,6 +1356,12 @@ function goBack(sc) { if(sc==='sc-home') renderAll(); if(sc==='sc-cart') renderC
 function goCheckout() {
   if(!Object.keys(cart).length) return;
   if(!lojaAberta()){ toast('🕐 Loja fechada. Horário: '+C.horario.abertura+' às '+C.horario.fechamento); return; }
+  if(!getCliente()) {
+    sessionStorage.setItem('ec_checkout_pendente','1');
+    toast('⚠️ Faça seu cadastro para finalizar o pedido');
+    showScreen('sc-login');
+    return;
+  }
   _cuponAplicado = null;
   document.getElementById('inp-cupon').value='';
   document.getElementById('cupon-msg').textContent='';
@@ -1503,7 +1523,43 @@ function toast(msg) {
 function openMenu() {
   document.getElementById('menu-overlay').classList.add('open');
   document.getElementById('menu-drawer').classList.add('open');
+  _renderMenuUser();
   renderPedidos();
+}
+function _renderMenuUser() {
+  var c = getCliente();
+  var infoEl = document.getElementById('menu-user-info');
+  var itemsEl = document.getElementById('menu-conta-items');
+  if (c) {
+    infoEl.innerHTML = '<div style="font-size:13px;font-weight:800;color:var(--text)">👤 '+c.nome+'</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:1px">'+c.phone+'</div>';
+    itemsEl.innerHTML = '<div class="menu-item" onclick="openSub(\'sub-pedidos\')">'
+      + '<span class="mi-icon">📦</span>'
+      + '<div class="mi-text"><div class="mi-title">Meus Pedidos</div><div class="mi-sub">Histórico dos seus pedidos</div></div>'
+      + '<span class="mi-arrow">›</span></div>'
+      + '<div class="menu-item" onclick="sairConta()">'
+      + '<span class="mi-icon">🚪</span>'
+      + '<div class="mi-text"><div class="mi-title">Sair da conta</div><div class="mi-sub">Fazer logout</div></div>'
+      + '<span class="mi-arrow">›</span></div>';
+  } else {
+    infoEl.innerHTML = '<div style="font-size:12px;color:var(--text3)">Visitante — sem conta</div>';
+    itemsEl.innerHTML = '<div class="menu-item" onclick="closeMenu();showScreen(\'sc-login\')">'
+      + '<span class="mi-icon">🔑</span>'
+      + '<div class="mi-text"><div class="mi-title">Entrar</div><div class="mi-sub">Já tenho cadastro</div></div>'
+      + '<span class="mi-arrow">›</span></div>'
+      + '<div class="menu-item" onclick="closeMenu();showScreen(\'sc-login\');showLoginView(\'lv-cadastro\')">'
+      + '<span class="mi-icon">📝</span>'
+      + '<div class="mi-text"><div class="mi-title">Criar conta</div><div class="mi-sub">Novo cadastro</div></div>'
+      + '<span class="mi-arrow">›</span></div>';
+  }
+}
+function sairConta() {
+  localStorage.removeItem('ec_cliente');
+  sessionStorage.removeItem('ec_visitante');
+  sessionStorage.removeItem('ec_checkout_pendente');
+  cart = {};
+  closeMenu();
+  showScreen('sc-login');
 }
 function closeMenu() {
   document.getElementById('menu-overlay').classList.remove('open');

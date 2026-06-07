@@ -127,6 +127,7 @@
       z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px;
     }
     .modal { background: var(--card); border-radius: 18px; padding: 28px; width: 100%; max-width: 440px; border: 1px solid var(--border); }
+    .modal-lg { max-width: 540px; max-height: 90vh; overflow-y: auto; }
     .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 20px; }
     .field { margin-bottom: 14px; }
     .field label { font-size: 11px; font-weight: 700; color: var(--text2); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
@@ -226,7 +227,7 @@
   </div>
 
   <div class="admin-tabs" style="overflow-x:auto;white-space:nowrap">
-    <div class="admin-tab active" onclick="goTab('pedidos')">📦 Pedidos</div>
+    <div class="admin-tab" onclick="goTab('pedidos')">📦 Pedidos</div>
     <div class="admin-tab" onclick="goTab('produtos')">🛒 Produtos</div>
     <div class="admin-tab" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="admin-tab" onclick="goTab('banners')">🖼 Banners</div>
@@ -239,7 +240,7 @@
   <div class="admin-body">
 
     <!-- TAB PEDIDOS -->
-    <div class="tab-panel active" id="tab-pedidos">
+    <div class="tab-panel" id="tab-pedidos">
       <div class="stats" id="stats-area"></div>
       <div class="toolbar">
         <div class="toolbar-title">Pedidos</div>
@@ -268,9 +269,10 @@
     <div class="tab-panel" id="tab-clientes">
       <div class="toolbar">
         <div class="toolbar-title">Clientes</div>
+        <button class="btn btn-outline btn-sm" onclick="exportarClientesCSV()">⬇ Exportar CSV</button>
         <button class="btn btn-outline btn-sm" onclick="loadClientes()">↻ Atualizar</button>
       </div>
-      <input id="cli-busca" type="text" placeholder="🔍 Buscar por nome ou celular..." oninput="renderClientes()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
+      <input id="cli-busca" type="text" placeholder="🔍 Buscar por nome, celular ou email..." oninput="renderClientes()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="stats" id="cli-stats"></div>
       <div class="card" id="clientes-list"><div class="loading">Carregando...</div></div>
     </div>
@@ -421,6 +423,29 @@
   </div>
 </div>
 
+<!-- ── MODAL CLIENTE ── -->
+<div class="modal-overlay" id="modal-cliente" style="display:none" onclick="if(event.target===this)closeModalCliente()">
+  <div class="modal modal-lg">
+    <div class="modal-title" id="mc-title">Editar Cliente</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>Nome</label><input id="mc-nome" placeholder="Nome completo"></div>
+      <div class="field"><label>Celular</label><input id="mc-phone" placeholder="81999999999" readonly style="opacity:.5"></div>
+    </div>
+    <div class="field"><label>Endereço</label><input id="mc-end" placeholder="Rua, número, bairro"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field"><label>E-mail</label><input id="mc-email" type="email" placeholder="email@exemplo.com"></div>
+      <div class="field"><label>Nascimento</label><input id="mc-nasc" type="date"></div>
+    </div>
+    <div class="field"><label>Observações / Tags</label><input id="mc-obs" placeholder="Ex: VIP, inativo, prefere retirada..."></div>
+    <div id="mc-historico" style="margin-top:16px;background:#111;border-radius:10px;padding:14px;font-size:12px;color:var(--text2);min-height:40px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="excluirCliente()">🗑 Excluir</button>
+      <button class="btn btn-outline" onclick="closeModalCliente()">Cancelar</button>
+      <button class="btn btn-y" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
@@ -465,11 +490,11 @@ var db = firebase.firestore();
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function entrarAdmin() {
+  var aba = localStorage.getItem('ec_admin_tab') || 'pedidos';
+  goTab(aba);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'flex';
-  var aba = sessionStorage.getItem('ec_admin_tab') || 'pedidos';
-  goTab(aba);
-  loadPedidos();
+  if (aba !== 'pedidos') iniciarPollingPedidos();
   loadProdutos();
   loadBanners();
   loadConfig();
@@ -524,7 +549,8 @@ function goTab(tab) {
   });
   document.querySelectorAll('.tab-panel').forEach(function(el){el.classList.remove('active');});
   document.getElementById('tab-'+tab).classList.add('active');
-  sessionStorage.setItem('ec_admin_tab', tab);
+  localStorage.setItem('ec_admin_tab', tab);
+  if (tab==='pedidos')   loadPedidos();
   if (tab==='relatorios') loadRelatorios();
   if (tab==='cupons') loadCupons();
   if (tab==='categorias') loadCategorias();
@@ -618,32 +644,137 @@ var _clientesCache = [];
 function loadClientes() {
   var el = document.getElementById('clientes-list');
   el.innerHTML = '<div class="loading">Carregando...</div>';
-  db.collection('clientes').orderBy('criadoEm','desc').get().then(function(snap) {
+  db.collection('clientes').get().then(function(snap) {
     _clientesCache = snap.docs.map(function(doc){ return Object.assign({_id:doc.id}, doc.data()); });
+    _clientesCache.sort(function(a,b){
+      var ta = a.criadoEm && a.criadoEm.toMillis ? a.criadoEm.toMillis() : 0;
+      var tb = b.criadoEm && b.criadoEm.toMillis ? b.criadoEm.toMillis() : 0;
+      return tb - ta;
+    });
     document.getElementById('cli-stats').innerHTML =
       '<div class="stat-card"><div class="stat-val">'+snap.size+'</div><div class="stat-label">Clientes cadastrados</div></div>';
     renderClientes();
-  }).catch(function(e){ el.innerHTML='<div class="loading">Erro: '+e.message+'</div>'; });
+  }).catch(function(e){ el.innerHTML='<div class="loading">Erro ao carregar clientes: '+e.message+'</div>'; });
 }
 function renderClientes() {
   var el = document.getElementById('clientes-list');
   var q = (document.getElementById('cli-busca').value||'').toLowerCase().trim();
   var lista = q ? _clientesCache.filter(function(c){
-    return (c.nome||'').toLowerCase().indexOf(q)>=0 || (c.phone||'').indexOf(q)>=0;
+    return (c.nome||'').toLowerCase().indexOf(q)>=0
+      || (c.phone||'').indexOf(q)>=0
+      || (c.email||'').toLowerCase().indexOf(q)>=0;
   }) : _clientesCache;
   if (!lista.length) { el.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">'+(q?'Nenhum cliente encontrado.':'Nenhum cliente cadastrado ainda.')+'</div></div>'; return; }
   el.innerHTML = lista.map(function(c){
     var dt = c.criadoEm && c.criadoEm.toDate ? c.criadoEm.toDate().toLocaleDateString('pt-BR') : '—';
-    return '<div class="prod-row">'
+    var ua = c.ultimoAcesso && c.ultimoAcesso.toDate ? c.ultimoAcesso.toDate().toLocaleDateString('pt-BR') : '—';
+    var nascStr = '';
+    if (c.nascimento) {
+      var parts = c.nascimento.split('-');
+      nascStr = ' · 🎂 '+parts[2]+'/'+parts[1];
+    }
+    var obsStr = c.observacoes ? '<span class="badge badge-y" style="margin-left:4px">'+c.observacoes+'</span>' : '';
+    return '<div class="prod-row" style="flex-wrap:wrap;gap:10px">'
       +'<div style="width:44px;height:44px;border-radius:50%;background:#FFC600;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>'
-      +'<div class="prod-info">'
-        +'<div class="prod-name-txt">'+c.nome+'</div>'
-        +'<div class="prod-meta">📱 '+(c.phone||'—')+(c.endereco?' · 📍 '+c.endereco:'')+'</div>'
+      +'<div class="prod-info" style="min-width:160px">'
+        +'<div class="prod-name-txt">'+c.nome+obsStr+'</div>'
+        +'<div class="prod-meta">📱 '+(c.phone||'—')+(c.email?' · ✉ '+c.email:'')+nascStr+'</div>'
+        +'<div class="prod-meta">📍 '+(c.endereco||'—')+'</div>'
+        +'<div class="prod-meta" style="margin-top:2px">Cadastro: '+dt+' · Acesso: '+ua+'</div>'
       +'</div>'
-      +'<div style="font-size:11px;color:var(--text2);text-align:right;margin-right:8px">Desde<br>'+dt+'</div>'
-      +'<a href="https://wa.me/55'+(c.phone||'').replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬</a>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0;margin-left:auto;align-items:center">'
+        +'<a href="https://wa.me/55'+(c.phone||'').replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬</a>'
+        +'<button class="btn btn-outline btn-sm" onclick="abrirModalCliente(\''+c._id+'\')">✏ Editar</button>'
+      +'</div>'
       +'</div>';
   }).join('');
+}
+
+var _clienteEditId = null;
+function abrirModalCliente(id) {
+  var c = _clientesCache.find(function(x){ return x._id === id; });
+  if (!c) return;
+  _clienteEditId = id;
+  document.getElementById('mc-nome').value  = c.nome  || '';
+  document.getElementById('mc-phone').value = c.phone || '';
+  document.getElementById('mc-end').value   = c.endereco || '';
+  document.getElementById('mc-email').value = c.email || '';
+  document.getElementById('mc-nasc').value  = c.nascimento || '';
+  document.getElementById('mc-obs').value   = c.observacoes || '';
+  var hist = document.getElementById('mc-historico');
+  hist.innerHTML = '<div style="color:var(--text);font-weight:700;margin-bottom:8px">Histórico de pedidos</div><div style="color:var(--text2)">⏳ Carregando...</div>';
+  document.getElementById('modal-cliente').style.display = 'flex';
+  db.collection('pedidos').where('phone','==', c.phone).get()
+    .then(function(snap){
+      if (snap.empty) { hist.innerHTML='<div style="color:var(--text);font-weight:700;margin-bottom:8px">Histórico de pedidos</div><div style="color:var(--text2)">Nenhum pedido encontrado.</div>'; return; }
+      var docs = snap.docs.map(function(d){ return d.data(); });
+      docs.sort(function(a,b){
+        var ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+        var tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+        return tb - ta;
+      });
+      var total = 0; var rows = '';
+      docs.slice(0,10).forEach(function(d){
+        var dt = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().toLocaleDateString('pt-BR') : '—';
+        var val = parseFloat(d.total)||0; total += val;
+        rows += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #222">'
+          +'<span>'+dt+' — '+(d.status||'—')+'</span>'
+          +'<span style="color:var(--y);font-weight:700">R$ '+val.toFixed(2).replace('.',',')+'</span>'
+          +'</div>';
+      });
+      hist.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:10px">'
+        +'<span style="color:var(--text);font-weight:700">Histórico ('+snap.size+' pedidos)</span>'
+        +'<span style="color:var(--green);font-weight:800">Total gasto: R$ '+total.toFixed(2).replace('.',',')+'</span>'
+        +'</div>'+rows;
+    }).catch(function(){ hist.innerHTML='<div style="color:var(--text2)">Erro ao carregar pedidos.</div>'; });
+}
+function closeModalCliente() {
+  document.getElementById('modal-cliente').style.display = 'none';
+  _clienteEditId = null;
+}
+function salvarCliente() {
+  if (!_clienteEditId) return;
+  var data = {
+    nome:       document.getElementById('mc-nome').value.trim(),
+    endereco:   document.getElementById('mc-end').value.trim(),
+    email:      document.getElementById('mc-email').value.trim(),
+    nascimento: document.getElementById('mc-nasc').value,
+    observacoes:document.getElementById('mc-obs').value.trim()
+  };
+  db.collection('clientes').doc(_clienteEditId).update(data).then(function(){
+    var idx = _clientesCache.findIndex(function(x){ return x._id === _clienteEditId; });
+    if (idx >= 0) Object.assign(_clientesCache[idx], data);
+    closeModalCliente();
+    renderClientes();
+    showToast('Cliente salvo!');
+  }).catch(function(e){ alert('Erro: '+e.message); });
+}
+function excluirCliente() {
+  if (!_clienteEditId) return;
+  var c = _clientesCache.find(function(x){ return x._id === _clienteEditId; });
+  if (!confirm('Excluir cliente '+( c ? c.nome : _clienteEditId)+'? Esta ação não pode ser desfeita.')) return;
+  db.collection('clientes').doc(_clienteEditId).delete().then(function(){
+    _clientesCache = _clientesCache.filter(function(x){ return x._id !== _clienteEditId; });
+    closeModalCliente();
+    renderClientes();
+    showToast('Cliente excluído.');
+  }).catch(function(e){ alert('Erro: '+e.message); });
+}
+function exportarClientesCSV() {
+  if (!_clientesCache.length) { alert('Nenhum cliente para exportar. Carregue a lista primeiro.'); return; }
+  var header = ['Nome','Celular','Email','Nascimento','Endereco','Observacoes','Cadastro','UltimoAcesso'];
+  var rows = _clientesCache.map(function(c){
+    var dt  = c.criadoEm    && c.criadoEm.toDate    ? c.criadoEm.toDate().toLocaleDateString('pt-BR')    : '';
+    var ua  = c.ultimoAcesso&& c.ultimoAcesso.toDate ? c.ultimoAcesso.toDate().toLocaleDateString('pt-BR'): '';
+    return [c.nome,c.phone,c.email||'',c.nascimento||'',c.endereco||'',c.observacoes||'',dt,ua]
+      .map(function(v){ return '"'+(v||'').replace(/"/g,'""')+'"'; }).join(',');
+  });
+  var csv = '﻿' + header.join(',') + '\n' + rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'clientes_economico_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
@@ -796,12 +927,15 @@ var STATUS_NEXT = {
 var _pedidosKnown = null;
 var _pedidosTimer = null;
 
-function loadPedidos() {
-  var list = document.getElementById('pedidos-list');
-  list.innerHTML = '<div class="loading">Carregando pedidos...</div>';
+function iniciarPollingPedidos() {
   if (_pedidosTimer) { clearInterval(_pedidosTimer); _pedidosTimer = null; }
   _fetchPedidos();
   _pedidosTimer = setInterval(_fetchPedidos, 30000);
+}
+function loadPedidos() {
+  var list = document.getElementById('pedidos-list');
+  list.innerHTML = '<div class="loading">Carregando pedidos...</div>';
+  iniciarPollingPedidos();
 }
 
 function _fetchPedidos() {
