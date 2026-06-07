@@ -203,6 +203,7 @@
         <button class="btn btn-outline btn-sm" onclick="apagarTodosProdutos()" style="border-color:#c0392b;color:#c0392b">🗑 Apagar todos</button>
       </div>
       <div id="csv-resultado" style="display:none;margin-bottom:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600"></div>
+      <input id="prod-busca" type="text" placeholder="🔍 Buscar por descrição ou EAN..." oninput="renderProdutos()" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;box-sizing:border-box;margin-bottom:10px;outline:none">
       <div class="card" id="produtos-list"><div class="loading">Carregando...</div></div>
     </div>
 
@@ -404,6 +405,45 @@ function updateStatus(docId, status) {
 
 // ── PRODUTOS ──────────────────────────────────────────────────────────────────
 var _editId = null;
+var _produtosCache = [];
+
+function renderProdutos() {
+  var list = document.getElementById('produtos-list');
+  var q = (document.getElementById('prod-busca').value || '').toLowerCase().trim();
+  var filtrado = q
+    ? _produtosCache.filter(function(p){
+        return p.name.toLowerCase().indexOf(q) >= 0 || (p.ean && p.ean.indexOf(q) >= 0);
+      })
+    : _produtosCache;
+  if (!filtrado.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-txt">'+(q?'Nenhum produto encontrado.':'Sem produtos.')+'</div></div>';
+    return;
+  }
+  list.innerHTML = filtrado.map(function(p){
+    var preco = 'R$'+Number(p.price).toFixed(2).replace('.',',');
+    var orig  = p.orig ? ' <span style="font-size:11px;color:#666;text-decoration:line-through">R$'+Number(p.orig).toFixed(2).replace('.',',')+'</span>' : '';
+    var isUrl = p.img && (p.img.startsWith('http') || p.img.startsWith('//'));
+    var thumb = isUrl
+      ? '<div class="prod-thumb"><img src="'+p.img+'" onerror="this.parentNode.innerHTML=\'📦\'"></div>'
+      : '<div class="prod-thumb">'+(p.img||'📦')+'</div>';
+    var btnFoto = p.ean
+      ? '<button class="btn-foto" onclick="buscarFoto(\''+p.ean+'\',\''+p._id+'\')" title="Buscar foto pelo EAN">📷 Foto</button>'
+      : '';
+    return '<div class="prod-row">'
+      +thumb
+      +'<div class="prod-info">'
+        +'<div class="prod-name-txt">'+p.name+'</div>'
+        +'<div class="prod-meta">'+p.cat+' · /'+p.unit+(p.ean?' · '+p.ean:'')+'</div>'
+      +'</div>'
+      +'<div class="prod-price-txt">'+preco+orig+'</div>'
+      +'<div class="prod-actions">'
+        +btnFoto
+        +'<button class="btn btn-outline btn-sm" onclick="openModal(\''+p._id+'\')">Editar</button>'
+        +'<button class="toggle-btn '+(p.ativo?'on':'off')+'" onclick="toggleAtivo(\''+p._id+'\','+p.ativo+')" title="'+(p.ativo?'Ativo':'Inativo')+'"></button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
 
 function loadProdutos() {
   var list = document.getElementById('produtos-list');
@@ -411,34 +451,14 @@ function loadProdutos() {
   db.collection('produtos').orderBy('ordem').get()
     .then(function(snap){
       if (snap.empty) {
-        list.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-txt">Sem produtos. Clique em "Importar padrão" para começar.</div></div>';
+        _produtosCache = [];
+        renderProdutos();
         return;
       }
-      list.innerHTML = snap.docs.map(function(doc){
-        var d = doc.data();
-        var preco = 'R$'+Number(d.price).toFixed(2).replace('.',',');
-        var orig  = d.orig ? ' <span style="font-size:11px;color:#666;text-decoration:line-through">R$'+Number(d.orig).toFixed(2).replace('.',',')+'</span>' : '';
-        var isUrl = d.img && (d.img.startsWith('http') || d.img.startsWith('//'));
-        var thumb = isUrl
-          ? '<div class="prod-thumb"><img src="'+d.img+'" onerror="this.parentNode.innerHTML=\'📦\'"></div>'
-          : '<div class="prod-thumb">'+(d.img||'📦')+'</div>';
-        var btnFoto = d.ean
-          ? '<button class="btn-foto" onclick="buscarFoto(\''+d.ean+'\',\''+doc.id+'\')" title="Buscar foto pelo EAN">📷 Foto</button>'
-          : '';
-        return '<div class="prod-row">'
-          +thumb
-          +'<div class="prod-info">'
-            +'<div class="prod-name-txt">'+d.name+'</div>'
-            +'<div class="prod-meta">'+d.cat+' · /'+d.unit+(d.ean?' · '+d.ean:'')+'</div>'
-          +'</div>'
-          +'<div class="prod-price-txt">'+preco+orig+'</div>'
-          +'<div class="prod-actions">'
-            +btnFoto
-            +'<button class="btn btn-outline btn-sm" onclick="openModal(\''+doc.id+'\')">Editar</button>'
-            +'<button class="toggle-btn '+(d.ativo?'on':'off')+'" onclick="toggleAtivo(\''+doc.id+'\','+d.ativo+')" title="'+(d.ativo?'Ativo':'Inativo')+'"></button>'
-          +'</div>'
-          +'</div>';
-      }).join('');
+      _produtosCache = snap.docs.map(function(doc){
+        return Object.assign({ _id: doc.id }, doc.data());
+      });
+      renderProdutos();
     })
     .catch(function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+'</div>'; });
 }
