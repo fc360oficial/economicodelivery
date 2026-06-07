@@ -89,7 +89,11 @@
       border-bottom: 1px solid var(--border);
     }
     .prod-row:last-child { border-bottom: none; }
-    .prod-emoji { font-size: 28px; width: 44px; text-align: center; flex-shrink: 0; }
+    .prod-thumb { width: 52px; height: 52px; border-radius: 10px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; font-size: 26px; border: 1px solid var(--border); }
+    .prod-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
+    .btn-foto { font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid #444; background: #222; color: #aaa; cursor: pointer; white-space: nowrap; }
+    .btn-foto:hover { border-color: var(--y); color: var(--y); }
+    .foto-preview { width: 100%; height: 140px; border-radius: 10px; background: #111; border: 1px solid var(--border); object-fit: contain; display: none; margin-top: 8px; }
     .prod-info { flex: 1; }
     .prod-name-txt { font-size: 14px; font-weight: 700; }
     .prod-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
@@ -227,6 +231,14 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="field"><label>Emoji / ícone</label><input id="f-img" placeholder="🥦"></div>
       <div class="field"><label>EAN (código de barras)</label><input id="f-ean" placeholder="7896000000000"></div>
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;justify-content:space-between">
+        Foto do produto
+        <button class="btn-foto" onclick="buscarFotoModal()" type="button">📷 Buscar pelo EAN</button>
+      </label>
+      <input id="f-foto-url" placeholder="URL da foto (ou use Buscar pelo EAN)" oninput="previewFoto(this.value)" style="margin-top:6px">
+      <img id="f-foto-preview" class="foto-preview">
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
@@ -389,14 +401,22 @@ function loadProdutos() {
         var d = doc.data();
         var preco = 'R$'+Number(d.price).toFixed(2).replace('.',',');
         var orig  = d.orig ? ' <span style="font-size:11px;color:#666;text-decoration:line-through">R$'+Number(d.orig).toFixed(2).replace('.',',')+'</span>' : '';
+        var isUrl = d.img && (d.img.startsWith('http') || d.img.startsWith('//'));
+        var thumb = isUrl
+          ? '<div class="prod-thumb"><img src="'+d.img+'" onerror="this.parentNode.innerHTML=\'📦\'"></div>'
+          : '<div class="prod-thumb">'+(d.img||'📦')+'</div>';
+        var btnFoto = d.ean
+          ? '<button class="btn-foto" onclick="buscarFoto(\''+d.ean+'\',\''+doc.id+'\')" title="Buscar foto pelo EAN">📷 Foto</button>'
+          : '';
         return '<div class="prod-row">'
-          +'<div class="prod-emoji">'+d.img+'</div>'
+          +thumb
           +'<div class="prod-info">'
             +'<div class="prod-name-txt">'+d.name+'</div>'
-            +'<div class="prod-meta">'+d.cat+' · /'+d.unit+(d.ean?' · EAN: '+d.ean:'')+'</div>'
+            +'<div class="prod-meta">'+d.cat+' · /'+d.unit+(d.ean?' · '+d.ean:'')+'</div>'
           +'</div>'
           +'<div class="prod-price-txt">'+preco+orig+'</div>'
           +'<div class="prod-actions">'
+            +btnFoto
             +'<button class="btn btn-outline btn-sm" onclick="openModal(\''+doc.id+'\')">Editar</button>'
             +'<button class="toggle-btn '+(d.ativo?'on':'off')+'" onclick="toggleAtivo(\''+doc.id+'\','+d.ativo+')" title="'+(d.ativo?'Ativo':'Inativo')+'"></button>'
           +'</div>'
@@ -408,6 +428,53 @@ function loadProdutos() {
 
 function toggleAtivo(docId, atual) {
   db.collection('produtos').doc(docId).update({ ativo: !atual }).then(loadProdutos);
+}
+
+var COSMOS_TOKEN = 'eK4RRJLcLhfOq5o5g7VCjA';
+
+function buscarFoto(ean, docId) {
+  fetch('https://api.cosmos.bluesoft.com.br/gtins/' + ean, {
+    headers: { 'X-Cosmos-Token': COSMOS_TOKEN, 'Content-Type': 'application/json' }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    var url = data.thumbnail_url || data.picture || null;
+    if (url) {
+      db.collection('produtos').doc(docId).update({ img: url }).then(function(){ loadProdutos(); });
+    } else {
+      alert('Foto não encontrada para este EAN na Cosmos.');
+    }
+  })
+  .catch(function(){ alert('Erro ao buscar foto. Verifique o EAN.'); });
+}
+
+function buscarFotoModal() {
+  var ean = document.getElementById('f-ean').value.trim();
+  if (!ean) { alert('Preencha o EAN primeiro.'); return; }
+  fetch('https://api.cosmos.bluesoft.com.br/gtins/' + ean, {
+    headers: { 'X-Cosmos-Token': COSMOS_TOKEN, 'Content-Type': 'application/json' }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    var url = data.thumbnail_url || data.picture || null;
+    if (url) {
+      document.getElementById('f-foto-url').value = url;
+      previewFoto(url);
+    } else {
+      alert('Foto não encontrada para este EAN.');
+    }
+  })
+  .catch(function(){ alert('Erro ao buscar foto.'); });
+}
+
+function previewFoto(url) {
+  var img = document.getElementById('f-foto-preview');
+  if (url && url.startsWith('http')) {
+    img.src = url;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
 }
 
 function baixarTemplate() {
@@ -549,12 +616,16 @@ function openModal(docId) {
       document.getElementById('f-orig').value  = d.orig||'';
       document.getElementById('f-cat').value   = d.cat||'Mercearia';
       document.getElementById('f-unit').value  = d.unit||'un';
-      document.getElementById('f-img').value   = d.img||'📦';
+      document.getElementById('f-img').value   = (d.img && !d.img.startsWith('http')) ? d.img : '📦';
       document.getElementById('f-ean').value   = d.ean||'';
+      var fotoUrl = (d.img && d.img.startsWith('http')) ? d.img : '';
+      document.getElementById('f-foto-url').value = fotoUrl;
+      previewFoto(fotoUrl);
     });
   } else {
-    ['f-name','f-price','f-orig','f-ean'].forEach(function(id){ document.getElementById(id).value=''; });
+    ['f-name','f-price','f-orig','f-ean','f-foto-url'].forEach(function(id){ document.getElementById(id).value=''; });
     document.getElementById('f-img').value = '📦';
+    previewFoto('');
   }
   document.getElementById('modal').style.display = 'flex';
 }
@@ -568,7 +639,7 @@ function saveProduto() {
     orig:  parseFloat(document.getElementById('f-orig').value)||null,
     cat:   document.getElementById('f-cat').value,
     unit:  document.getElementById('f-unit').value,
-    img:   document.getElementById('f-img').value||'📦',
+    img:   document.getElementById('f-foto-url').value.trim() || document.getElementById('f-img').value||'📦',
     ean:   document.getElementById('f-ean').value.trim()||null,
     ativo: true,
   };
