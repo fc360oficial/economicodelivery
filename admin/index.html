@@ -444,18 +444,21 @@ function importarCSV(input) {
   if (!file) return;
   var reader = new FileReader();
   reader.onload = function(e) {
-    var sep = e.target.result.indexOf(';') > e.target.result.indexOf(',') ? ';' : ',';
-    var linhas = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    var texto = e.target.result;
+    var primeiraLinha = texto.split('\n')[0];
+    var sep = primeiraLinha.indexOf(';') >= 0 ? ';' : ',';
+    var linhas = texto.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
     if (linhas.length < 2) { csvMsg('Arquivo vazio ou sem dados.', false); return; }
 
-    var header = linhas[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(sep).map(function(h){ return h.trim().replace(/['"]/g,''); });
+    function norm(s){ return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim().replace(/['"]/g,''); }
+    var header = linhas[0].split(sep).map(norm);
 
     var idx = {
       nome:  _findCol(header, ['nome','descricao','description','produto','desc']),
-      price: _findCol(header, ['preco','preco de venda','preco_venda','valor','price','venda','vlr_venda','preco venda']),
-      ean:   _findCol(header, ['ean','codigo','cod','barcode','codigo de barras','gtin','referencia']),
+      price: _findCol(header, ['preco de venda','preco_venda','preco venda','vlr_venda','valor venda','preco','valor','price','venda']),
+      ean:   _findCol(header, ['ean','codigo barras','codigo de barras','cod barras','barcode','codigo','cod','gtin','referencia']),
       cat:   _findCol(header, ['categoria','cat','category','setor','grupo']),
-      orig:  _findCol(header, ['preco_original','preco original','preco_ant','de','original']),
+      orig:  _findCol(header, ['preco_original','preco original','preco_ant','original']),
       unit:  _findCol(header, ['unidade','unit','un','und']),
       img:   _findCol(header, ['emoji','img','icone']),
     };
@@ -465,7 +468,7 @@ function importarCSV(input) {
 
     var rows = [];
     for (var i = 1; i < linhas.length; i++) {
-      var cols = linhas[i].split(sep).map(function(c){ return c.trim().replace(/^["']|["']$/g,''); });
+      var cols = linhas[i].split(sep).map(function(c){ return c.trim().replace(/^["']|["']$/g,'').replace(/^R\$\s*/i,''); });
       var nome = idx.nome >= 0 ? (cols[idx.nome]||'').trim() : '';
       if (!nome) continue;
       var preco = _parseNum(idx.price >= 0 ? cols[idx.price] : '');
