@@ -469,17 +469,25 @@ function toggleAtivo(docId, atual) {
 
 var COSMOS_TOKEN = 'eK4RRJLcLhfOq5o5g7VCjA';
 
+function _cosmosUrl(data) {
+  return data.thumbnail_url
+    || data.picture
+    || (data.photos && data.photos[0] && (data.photos[0].url || data.photos[0].medium || data.photos[0].small))
+    || (Array.isArray(data.images) && data.images[0])
+    || null;
+}
+
 function buscarFoto(ean, docId) {
   fetch('https://api.cosmos.bluesoft.com.br/gtins/' + ean, {
-    headers: { 'X-Cosmos-Token': COSMOS_TOKEN, 'Content-Type': 'application/json' }
+    headers: { 'X-Cosmos-Token': COSMOS_TOKEN }
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    var url = data.thumbnail_url || data.picture || null;
+    var url = _cosmosUrl(data);
     if (url) {
       db.collection('produtos').doc(docId).update({ img: url }).then(function(){ loadProdutos(); });
     } else {
-      alert('Foto não encontrada para este EAN na Cosmos.');
+      alert('Foto não disponível via API para este EAN.\nUse o botão "Upload" para enviar a foto manualmente.');
     }
   })
   .catch(function(){ alert('Erro ao buscar foto. Verifique o EAN.'); });
@@ -489,16 +497,16 @@ function buscarFotoModal() {
   var ean = document.getElementById('f-ean').value.trim();
   if (!ean) { alert('Preencha o EAN primeiro.'); return; }
   fetch('https://api.cosmos.bluesoft.com.br/gtins/' + ean, {
-    headers: { 'X-Cosmos-Token': COSMOS_TOKEN, 'Content-Type': 'application/json' }
+    headers: { 'X-Cosmos-Token': COSMOS_TOKEN }
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    var url = data.thumbnail_url || data.picture || null;
+    var url = _cosmosUrl(data);
     if (url) {
       document.getElementById('f-foto-url').value = url;
       previewFoto(url);
     } else {
-      alert('Foto não encontrada para este EAN.');
+      alert('Foto não disponível via API para este EAN.\nUse o botão "Upload" para enviar a foto manualmente.');
     }
   })
   .catch(function(){ alert('Erro ao buscar foto.'); });
