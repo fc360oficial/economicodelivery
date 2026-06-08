@@ -478,11 +478,17 @@
     <div class="login-label">Celular (WhatsApp)</div>
     <input class="login-input" type="tel" id="lc-phone" placeholder="(81) 99999-9999">
     <div class="login-label">Endereço principal</div>
-    <input class="login-input" type="text" id="lc-end" placeholder="Rua, número, bairro">
+    <input class="login-input" type="text" id="lc-end" placeholder="Rua e número">
+    <div class="login-label">Bairro</div>
+    <input class="login-input" type="text" id="lc-bairro" placeholder="Seu bairro">
     <div class="login-label">E-mail <span style="font-size:10px;color:#999">(opcional)</span></div>
     <input class="login-input" type="email" id="lc-email" placeholder="seu@email.com">
     <div class="login-label">Data de nascimento <span style="font-size:10px;color:#999">(opcional)</span></div>
     <input class="login-input" type="date" id="lc-nasc">
+    <label style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;cursor:pointer;font-size:13px;color:#555">
+      <input type="checkbox" id="lc-marketing" checked style="width:18px;height:18px;accent-color:#FFC600;flex-shrink:0">
+      Quero receber ofertas e promoções
+    </label>
     <div class="login-err" id="lc-err"></div>
     <div class="login-btns">
       <button class="login-btn login-btn-primary" onclick="criarConta()">Criar conta →</button>
@@ -930,16 +936,24 @@ function fazerLogin() {
 }
 
 function criarConta() {
-  var nome  = document.getElementById('lc-nome').value.trim();
-  var phone = document.getElementById('lc-phone').value.replace(/\D/g,'');
-  var end   = document.getElementById('lc-end').value.trim();
-  var email = document.getElementById('lc-email').value.trim();
-  var nasc  = document.getElementById('lc-nasc').value;
-  var err   = document.getElementById('lc-err');
+  var nome      = document.getElementById('lc-nome').value.trim();
+  var phone     = document.getElementById('lc-phone').value.replace(/\D/g,'');
+  var end       = document.getElementById('lc-end').value.trim();
+  var bairro    = document.getElementById('lc-bairro').value.trim();
+  var email     = document.getElementById('lc-email').value.trim();
+  var nasc      = document.getElementById('lc-nasc').value;
+  var marketing = document.getElementById('lc-marketing').checked;
+  var err       = document.getElementById('lc-err');
   if (!nome) { err.textContent='Informe seu nome.'; return; }
   if (phone.length < 10) { err.textContent='Informe um celular válido.'; return; }
   err.textContent='';
-  var data = { nome:nome, phone:phone, endereco:end, criadoEm: firebase.firestore.FieldValue.serverTimestamp(), ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp() };
+  var data = {
+    nome:nome, phone:phone, endereco:end, bairro:bairro,
+    aceitaMarketing:marketing,
+    totalGasto:0, qtdPedidos:0,
+    criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+    ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp()
+  };
   if (email) data.email = email;
   if (nasc)  data.nascimento = nasc;
   db.collection('clientes').doc(phone).set(data, {merge:true}).then(function() {
@@ -1468,6 +1482,14 @@ function confirmar() {
   db.collection('pedidos').add(pedidoData).then(function(ref) {
     _trackDocId = ref.id;
     if (_cuponAplicado) db.collection('cupons').doc(_cuponAplicado.id).update({ usoAtual: firebase.firestore.FieldValue.increment(1) });
+    var c = getCliente();
+    if (c && c.phone) {
+      db.collection('clientes').doc(c.phone).update({
+        totalGasto:  firebase.firestore.FieldValue.increment(total),
+        qtdPedidos:  firebase.firestore.FieldValue.increment(1),
+        ultimoPedido: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
     startTracking(ref.id);
   });
   cart={}; _cuponAplicado=null; updBadge(); showScreen('sc-success');
