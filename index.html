@@ -533,8 +533,13 @@
   <div class="splash-label">Insira seu CEP</div>
   <input class="splash-cep" type="tel" id="splash-cep" placeholder="00000-000" maxlength="9" oninput="maskCep(this)">
   <div class="cep-street" id="cep-street"></div>
+  <div id="cep-range-warn" style="display:none;background:#fff7ed;border:1px solid #f97316;border-radius:12px;padding:14px 16px;margin-bottom:16px;text-align:center;width:100%">
+    <div style="font-size:22px;margin-bottom:4px">🚫</div>
+    <div style="font-size:13px;font-weight:800;color:#9a3412">CEP fora da rota de entrega</div>
+    <div style="font-size:12px;color:#7c2d12;margin-top:4px;line-height:1.5">Seu endereço está fora da nossa área de entrega.<br>Você pode retirar o pedido na loja.</div>
+  </div>
   <div class="splash-btns">
-    <button class="splash-btn btn-red" onclick="entrar('entrega')">🚚 &nbsp;RECEBER EM CASA</button>
+    <button class="splash-btn btn-red" id="btn-splash-entrega" onclick="entrar('entrega')">🚚 &nbsp;RECEBER EM CASA</button>
     <button class="splash-btn btn-green" onclick="entrar('retirada')">🏪 &nbsp;RETIRAR NA LOJA</button>
   </div>
 </div>
@@ -974,10 +979,22 @@ function loadConfigFirestore() {
     if (d.pedidoMinimo!= null) C.minOrder    = d.pedidoMinimo;
     if (d.freteGratis != null) C.freeAbove   = d.freteGratis;
     if (d.horario)     C.horario     = d.horario;
+    if (d.maxDistKm)   _maxDistKm   = d.maxDistKm;
     var elTaxa = document.getElementById('pol-taxa');
     var elGratis = document.getElementById('pol-gratis');
     if (elTaxa) elTaxa.textContent = C.fee > 0 ? fmt(C.fee) : 'Grátis';
     if (elGratis) elGratis.textContent = fmt(C.freeAbove);
+    if (d.cepLoja) {
+      fetch('https://brasilapi.com.br/api/cep/v2/'+d.cepLoja.replace(/\D/g,''))
+        .then(function(r){ return r.json(); })
+        .then(function(cd){
+          var coords = cd.location && cd.location.coordinates;
+          if (coords && coords.latitude) {
+            _storeCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
+            _atualizarRangeUI();
+          }
+        }).catch(function(){});
+    }
   }).catch(function(){});
 }
 
@@ -1250,21 +1267,48 @@ function maskCep(el) {
   if (v.length>5) v = v.slice(0,5)+'-'+v.slice(5,8);
   el.value = v;
   if (v.replace('-','').length === 8) lookupCep(v.replace('-',''));
-  else document.getElementById('cep-street').textContent = '';
+  else {
+    document.getElementById('cep-street').textContent = '';
+    _userCoords = null; _atualizarRangeUI();
+  }
 }
 
 var _cepData = null;
+var _storeCoords = null;
+var _userCoords  = null;
+var _maxDistKm   = 10;
+
+function haversineKm(lat1,lon1,lat2,lon2) {
+  var R=6371, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function _atualizarRangeUI() {
+  var warn   = document.getElementById('cep-range-warn');
+  var btnEnt = document.getElementById('btn-splash-entrega');
+  if (!warn || !btnEnt) return;
+  var foraDaRota = !!(_storeCoords && _userCoords && haversineKm(_storeCoords.lat,_storeCoords.lng,_userCoords.lat,_userCoords.lng) > _maxDistKm);
+  warn.style.display   = foraDaRota ? 'block' : 'none';
+  btnEnt.style.display = foraDaRota ? 'none'  : 'block';
+}
 
 function lookupCep(cep) {
   document.getElementById('cep-street').textContent = 'Buscando...';
-  _cepData = null;
-  fetch('https://viacep.com.br/ws/'+cep+'/json/')
-    .then(function(r){return r.json();})
+  _cepData = null; _userCoords = null;
+  _atualizarRangeUI();
+  fetch('https://brasilapi.com.br/api/cep/v2/'+cep)
+    .then(function(r){ return r.json(); })
     .then(function(d){
-      if (d.erro) { document.getElementById('cep-street').textContent = 'CEP não encontrado'; return; }
-      _cepData = d;
-      var str = d.logradouro ? d.logradouro+(d.bairro?', '+d.bairro:'') : d.bairro||d.localidade;
-      document.getElementById('cep-street').textContent = '📍 '+str;
+      if (d.message || d.errors) { document.getElementById('cep-street').textContent = 'CEP não encontrado'; return; }
+      _cepData = { logradouro: d.street||'', bairro: d.neighborhood||'', localidade: d.city||'', uf: d.state||'' };
+      var str = d.street ? d.street+(d.neighborhood?', '+d.neighborhood:'') : d.neighborhood||d.city||'';
+      document.getElementById('cep-street').textContent = str ? '📍 '+str : '';
+      var coords = d.location && d.location.coordinates;
+      if (coords && coords.latitude) {
+        _userCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
+        _atualizarRangeUI();
+      }
     })
     .catch(function(){ document.getElementById('cep-street').textContent = ''; });
 }
@@ -1778,6 +1822,7 @@ function voltarSplash() {
   localStorage.removeItem('ec_loc');
   document.getElementById('splash-cep').value = '';
   document.getElementById('cep-street').textContent = '';
+  _userCoords = null; _atualizarRangeUI();
   showScreen('sc-splash');
 }
 
