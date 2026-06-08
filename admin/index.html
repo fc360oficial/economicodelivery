@@ -383,13 +383,64 @@
 
 <!-- ── MODAL SAIU PARA ENTREGA ── -->
 <div class="modal-overlay" id="dlg-saiu" style="display:none">
-  <div class="modal" style="max-width:360px;text-align:center">
-    <div style="font-size:40px;margin-bottom:12px">🛵</div>
-    <div class="modal-title" style="justify-content:center">Notificar cliente?</div>
-    <p style="font-size:14px;color:var(--text2);margin:0 0 20px">O pedido <strong id="dlg-saiu-num"></strong> saiu para entrega.<br>Deseja avisar o cliente pelo WhatsApp?</p>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="_executarSaiu(false)">Não avisar</button>
-      <button class="btn btn-green" onclick="_executarSaiu(true)">✅ Sim, avisar</button>
+  <div class="modal" style="max-width:380px">
+
+    <!-- ETAPA 1: cupom fiscal -->
+    <div id="dlg-saiu-step1">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:36px">🧾</div>
+        <div class="modal-title" style="margin-top:8px;margin-bottom:4px">Foto do Cupom Fiscal</div>
+        <p style="font-size:13px;color:var(--text2);margin:0">Pedido <strong id="dlg-saiu-num"></strong> — tire uma foto do cupom antes de liberar a entrega.</p>
+      </div>
+
+      <label id="dlg-cupom-label" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--border);border-radius:12px;padding:28px 16px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--y)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span style="font-size:32px">📷</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text2)">Toque para tirar foto</span>
+        <input id="dlg-cupom-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="_cupomSelecionado(this)">
+      </label>
+
+      <div id="dlg-cupom-preview" style="display:none;margin-top:12px;text-align:center">
+        <img id="dlg-cupom-img" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover">
+        <div id="dlg-cupom-status" style="font-size:12px;margin-top:8px;color:var(--text2)">Enviando…</div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn btn-outline" onclick="document.getElementById('dlg-saiu').style.display='none'">Cancelar</button>
+        <button class="btn btn-orange" id="dlg-cupom-btn" disabled onclick="_irParaStep2()" style="opacity:.5">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- ETAPA 2: notificar cliente -->
+    <div id="dlg-saiu-step2" style="display:none;text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🛵</div>
+      <div class="modal-title" style="margin-bottom:8px">Notificar cliente?</div>
+      <p style="font-size:13px;color:var(--text2);margin:0 0 20px">O pedido <strong id="dlg-saiu-num2"></strong> saiu para entrega.<br>Deseja avisar o cliente pelo WhatsApp?</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="_executarSaiu(false)">Não avisar</button>
+        <button class="btn btn-green" onclick="_executarSaiu(true)">✅ Sim, avisar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODAL AJUSTAR PEDIDO ── -->
+<div class="modal-overlay" id="dlg-ajustar" style="display:none" onclick="if(event.target===this)fecharAjuste()">
+  <div class="modal modal-lg">
+    <div class="modal-title">✏️ Ajustar Pedido <span id="aj-num" style="color:var(--y)"></span></div>
+    <p style="font-size:12px;color:var(--text2);margin:-8px 0 16px">Altere as quantidades ou remova itens. O total será recalculado.</p>
+    <div id="aj-items"></div>
+    <div id="aj-aviso-pix" style="display:none;background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:10px;padding:12px;font-size:12px;color:var(--red);margin-top:12px"></div>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--text2)">Novo total:</span>
+      <span id="aj-total" style="font-size:18px;font-weight:900;color:var(--text)">R$ 0,00</span>
+    </div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-outline" onclick="fecharAjuste()">Cancelar</button>
+      <button class="btn btn-y" id="aj-salvar-btn" onclick="salvarAjuste()">Salvar ajuste</button>
+    </div>
+    <div id="aj-wa-row" style="display:none;margin-top:10px">
+      <a id="aj-wa-link" target="_blank" class="btn btn-green" style="display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none">💬 Avisar cliente pelo WhatsApp</a>
     </div>
   </div>
 </div>
@@ -1034,6 +1085,7 @@ function _fetchPedidos() {
             +(d.agendado&&d.agendadoPara?'<br>📅 Agendado para: <strong>'+d.agendadoPara+'</strong>':'')
           +'</div>'
           +'<div class="pedido-status-btns">'+btns+waLink+_btnPagamento(doc.id,d)
+          +(['recebido','preparando'].indexOf(d.status)>=0?'<button class="btn btn-outline btn-sm" onclick="abrirAjuste(\''+doc.id+'\')">✏️ Ajustar</button>':'')
           +'<button class="btn btn-outline btn-sm" onclick="imprimirPedido(\''+doc.id+'\',this)" style="margin-left:auto">🖨️ Imprimir</button>'
           +'</div>'
           +'</div>';
@@ -1139,15 +1191,64 @@ function updateStatus(docId, status) {
     .catch(function(e){ alert('Erro: '+e.message); });
 }
 
-var _saiu_docId = null, _saiu_num = null, _saiu_phone = null;
+// ── SAIU PARA ENTREGA + CUPOM FISCAL ─────────────────────────────────────────
+var _saiu_docId = null, _saiu_num = null, _saiu_phone = null, _cupomUrl = null;
+
 function confirmarSaiu(docId, num, phone) {
-  _saiu_docId = docId; _saiu_num = num; _saiu_phone = phone;
+  _saiu_docId = docId; _saiu_num = num; _saiu_phone = phone; _cupomUrl = null;
   document.getElementById('dlg-saiu-num').textContent = num;
+  document.getElementById('dlg-saiu-num2').textContent = num;
+  // reset step 1
+  document.getElementById('dlg-saiu-step1').style.display = 'block';
+  document.getElementById('dlg-saiu-step2').style.display = 'none';
+  document.getElementById('dlg-cupom-preview').style.display = 'none';
+  document.getElementById('dlg-cupom-input').value = '';
+  var btn = document.getElementById('dlg-cupom-btn');
+  btn.disabled = true; btn.style.opacity = '.5';
   document.getElementById('dlg-saiu').style.display = 'flex';
 }
+
+function _cupomSelecionado(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('dlg-cupom-img').src = e.target.result;
+    document.getElementById('dlg-cupom-preview').style.display = 'block';
+    document.getElementById('dlg-cupom-status').textContent = 'Enviando foto…';
+    var btn = document.getElementById('dlg-cupom-btn');
+    btn.disabled = true; btn.style.opacity = '.5';
+    // upload ImgBB
+    var fd = new FormData();
+    fd.append('image', file);
+    fetch('https://api.imgbb.com/1/upload?key=c1402a78f5b442313482fd3cb1789ae0', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (j.data && j.data.url) {
+          _cupomUrl = j.data.url;
+          document.getElementById('dlg-cupom-status').textContent = '✅ Foto enviada com sucesso';
+          btn.disabled = false; btn.style.opacity = '1';
+        } else {
+          document.getElementById('dlg-cupom-status').textContent = '❌ Erro no envio. Tente novamente.';
+        }
+      })
+      .catch(function(){
+        document.getElementById('dlg-cupom-status').textContent = '❌ Sem conexão. Tente novamente.';
+      });
+  };
+  reader.readAsDataURL(file);
+}
+
+function _irParaStep2() {
+  document.getElementById('dlg-saiu-step1').style.display = 'none';
+  document.getElementById('dlg-saiu-step2').style.display = 'block';
+}
+
 function _executarSaiu(notificar) {
   document.getElementById('dlg-saiu').style.display = 'none';
-  db.collection('pedidos').doc(_saiu_docId).update({ status: 'saiu' })
+  var update = { status: 'saiu' };
+  if (_cupomUrl) update.cupomFiscalUrl = _cupomUrl;
+  db.collection('pedidos').doc(_saiu_docId).update(update)
     .then(function() {
       if (notificar && _saiu_phone) {
         var msg = '🛵 Olá! Seu pedido '+_saiu_num+' saiu para entrega e chegará em breve. Obrigado por comprar no Econômico Delivery!';
@@ -1155,6 +1256,93 @@ function _executarSaiu(notificar) {
       }
     })
     .catch(function(e){ alert('Erro: '+e.message); });
+}
+
+// ── AJUSTAR PEDIDO ────────────────────────────────────────────────────────────
+var _ajDocId = null, _ajData = null;
+
+function abrirAjuste(docId) {
+  _ajDocId = docId;
+  document.getElementById('aj-items').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2)">Carregando…</div>';
+  document.getElementById('aj-wa-row').style.display = 'none';
+  document.getElementById('aj-aviso-pix').style.display = 'none';
+  document.getElementById('dlg-ajustar').style.display = 'flex';
+  db.collection('pedidos').doc(docId).get().then(function(doc) {
+    if (!doc.exists) return;
+    _ajData = doc.data();
+    document.getElementById('aj-num').textContent = _ajData.num || '';
+    _renderAjItems();
+  });
+}
+
+function _renderAjItems() {
+  var itens = (_ajData.itens || []);
+  document.getElementById('aj-items').innerHTML = itens.map(function(item, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1;font-size:13px;font-weight:600">'+item.name+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);min-width:60px;text-align:right">R$'+Number(item.price).toFixed(2).replace('.',',')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+        +'<button onclick="_ajQty('+i+',-1)" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>'
+        +'<span id="aj-qty-'+i+'" style="min-width:24px;text-align:center;font-weight:700;font-size:14px">'+item.qty+'</span>'
+        +'<button onclick="_ajQty('+i+',1)" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  _ajCalcTotal();
+}
+
+function _ajQty(i, d) {
+  var itens = _ajData.itens;
+  itens[i].qty = Math.max(0, (itens[i].qty || 0) + d);
+  document.getElementById('aj-qty-'+i).textContent = itens[i].qty;
+  if (itens[i].qty === 0) document.getElementById('aj-qty-'+i).style.color = 'var(--red)';
+  else document.getElementById('aj-qty-'+i).style.color = 'var(--text)';
+  _ajCalcTotal();
+}
+
+function _ajCalcTotal() {
+  var itens = _ajData.itens || [];
+  var sub = itens.reduce(function(s, it){ return s + (it.qty * it.price); }, 0);
+  var frete = _ajData.frete || 0;
+  var desc = _ajData.desconto || 0;
+  var novoTotal = Math.max(0, sub - desc + frete);
+  document.getElementById('aj-total').textContent = 'R$' + novoTotal.toFixed(2).replace('.',',');
+
+  var totalOriginal = _ajData.total || 0;
+  var aviso = document.getElementById('aj-aviso-pix');
+  if (_ajData.pagamento === 'pix' && _ajData.pagamentoPago && novoTotal < totalOriginal) {
+    var diff = (totalOriginal - novoTotal).toFixed(2).replace('.',',');
+    aviso.style.display = 'block';
+    aviso.textContent = '⚠️ Cliente pagou R$'+Number(totalOriginal).toFixed(2).replace('.',',')+' via PIX. Com o ajuste, ficou R$'+diff+' a devolver ou abater no próximo pedido.';
+  } else {
+    aviso.style.display = 'none';
+  }
+}
+
+function fecharAjuste() { document.getElementById('dlg-ajustar').style.display = 'none'; }
+
+function salvarAjuste() {
+  var btn = document.getElementById('aj-salvar-btn');
+  btn.textContent = 'Salvando…'; btn.disabled = true;
+  var itens = (_ajData.itens || []).filter(function(it){ return it.qty > 0; });
+  var sub = itens.reduce(function(s, it){ return s + (it.qty * it.price); }, 0);
+  var frete = _ajData.frete || 0;
+  var desc = _ajData.desconto || 0;
+  var novoTotal = Math.max(0, sub - desc + frete);
+  var itensTxt = itens.map(function(i){ return i.qty+'x '+i.name; }).join(', ');
+  db.collection('pedidos').doc(_ajDocId).update({ itens: itens, subtotal: sub, total: novoTotal, ajustado: true })
+    .then(function() {
+      btn.textContent = '✅ Salvo!';
+      showToast('Pedido ajustado!');
+      if (_ajData.phone) {
+        var msg = '📦 Olá '+(_ajData.nome||'')+', seu pedido '+(_ajData.num||'')+' foi ajustado.\n\nNovos itens: '+itensTxt+'\n💰 Novo total: R$'+novoTotal.toFixed(2).replace('.',',')+'\n\nQualquer dúvida estamos à disposição!';
+        var waEl = document.getElementById('aj-wa-link');
+        waEl.href = 'https://wa.me/55'+_ajData.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+        document.getElementById('aj-wa-row').style.display = 'block';
+      }
+      setTimeout(function(){ btn.textContent='Salvar ajuste'; btn.disabled=false; }, 2000);
+    })
+    .catch(function(e){ btn.textContent='Salvar ajuste'; btn.disabled=false; alert('Erro: '+e.message); });
 }
 
 // ── PRODUTOS ──────────────────────────────────────────────────────────────────
