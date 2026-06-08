@@ -1116,10 +1116,11 @@ function _fetchPedidos() {
         var d = doc.data();
         var st = STATUS_LABELS[d.status] || STATUS_LABELS.recebido;
         var itens = (d.itens||[]).map(function(i){ return i.qty+'x '+i.name; }).join(', ');
+        var phone = d.phone ? d.phone.replace(/\D/g,'') : '';
         var btns = (STATUS_NEXT[d.status]||[]).map(function(b){
           var fn = b.notificar
-            ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(d.phone?'\''+d.phone.replace(/\D/g,'')+'\'':'null')+')'
-            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\',this)';
+            ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(phone?'\''+phone+'\'':'null')+')'
+            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\',this,\''+phone+'\',\''+encodeURIComponent(d.nome||'')+'\',\''+encodeURIComponent(d.num||'')+'\')';
           return '<button class="btn '+b.cls+' btn-sm" onclick="'+fn+'">'+b.label+'</button>';
         }).join('');
         var waLink = d.phone ? '<a href="https://wa.me/55'+d.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬 WhatsApp</a>' : '';
@@ -1249,10 +1250,30 @@ function renderStats(snap) {
 }
 function stat(val,label){ return '<div class="stat-card"><div class="stat-val">'+val+'</div><div class="stat-label">'+label+'</div></div>'; }
 
-function updateStatus(docId, status, btn) {
+var _WA_MSG = {
+  preparando: function(nome, num) {
+    return '📦 Olá '+nome+'! Seu pedido '+num+' foi recebido e já está em separação. Em breve atualizaremos o status. Obrigado por comprar no Econômico Delivery! 🛒';
+  },
+  entregue: function(nome, num) {
+    return '✅ Olá '+nome+'! Seu pedido '+num+' foi entregue com sucesso. Esperamos que tenha gostado! Qualquer dúvida estamos à disposição. Volte sempre! 😊';
+  },
+  cancelado: function(nome, num) {
+    return '❌ Olá '+nome+', infelizmente seu pedido '+num+' foi cancelado. Entre em contato conosco pelo WhatsApp para mais informações.';
+  }
+};
+
+function updateStatus(docId, status, btn, phone, nomeEnc, numEnc) {
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = '⏳'; }
   db.collection('pedidos').doc(docId).update({ status: status })
-    .then(function(){ _fetchPedidos(); })
+    .then(function(){
+      _fetchPedidos();
+      if (phone && _WA_MSG[status]) {
+        var nome = decodeURIComponent(nomeEnc || '');
+        var num  = decodeURIComponent(numEnc  || '');
+        var msg  = _WA_MSG[status](nome, num);
+        window.open('https://wa.me/55'+phone+'?text='+encodeURIComponent(msg), '_blank');
+      }
+    })
     .catch(function(e){
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
       alert('Erro: '+e.message);
