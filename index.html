@@ -450,6 +450,16 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- BARRA PEDIDO ATIVO — global, position:fixed, independente da tela -->
+<div id="pedido-ativo-bar" style="display:none;position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;z-index:500;background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 14px;align-items:center;gap:10px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)" onclick="abrirTrackingAtivo()">
+  <span id="pedido-ativo-icon" style="font-size:22px">📦</span>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:11px;font-weight:800;color:#FFC600;text-transform:uppercase;letter-spacing:.5px" id="pedido-ativo-titulo">Pedido em separação</div>
+    <div id="pedido-ativo-label" style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carregando…</div>
+  </div>
+  <span style="font-size:18px;color:#FFC600">›</span>
+</div>
+
 <!-- ══════════════════ LOGIN ══════════════════ -->
 <div class="screen active" id="sc-login">
 
@@ -586,16 +596,6 @@
     <div class="prod-grid" id="prod-grid"></div>
     <div style="height:16px"></div>
 
-  </div>
-
-  <!-- PEDIDO ATIVO -->
-  <div id="pedido-ativo-bar" style="display:none;position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;z-index:299;background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 14px;display:none;align-items:center;gap:10px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)" onclick="showScreen('sc-track')">
-    <span id="pedido-ativo-icon" style="font-size:22px">📥</span>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:11px;font-weight:800;color:#FFC600;text-transform:uppercase;letter-spacing:.5px">Pedido em andamento</div>
-      <div id="pedido-ativo-label" style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carregando…</div>
-    </div>
-    <span style="font-size:18px;color:#FFC600">›</span>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -1541,10 +1541,10 @@ function updCoSum() {
 var _trackDocId = null;
 var _unsubTrack = null;
 var _TRACK_STEPS = [
-  {s:'recebido',   label:'Pedido recebido',     icon:'📥'},
-  {s:'preparando', label:'Preparando seu pedido',icon:'👨‍🍳'},
-  {s:'saiu',       label:'Saiu para entrega',    icon:'🛵'},
-  {s:'entregue',   label:'Pedido entregue!',     icon:'✅'},
+  {s:'recebido',   label:'Pedido recebido',    icon:'📥'},
+  {s:'preparando', label:'Em separação',        icon:'📦'},
+  {s:'saiu',       label:'Saiu para entrega',   icon:'🛵'},
+  {s:'entregue',   label:'Pedido entregue!',    icon:'✅'},
 ];
 
 function confirmar() {
@@ -1617,20 +1617,24 @@ function confirmar() {
   cart={}; _cuponAplicado=null; saveCart(); updBadge(); showScreen('sc-success');
 }
 
-var _TRACK_STATUS_ICON = {recebido:'📥',preparando:'👨‍🍳',saiu:'🛵',entregue:'✅',cancelado:'❌'};
-var _TRACK_STATUS_LABEL = {recebido:'Pedido recebido',preparando:'Preparando seu pedido',saiu:'Saiu para entrega!',entregue:'Pedido entregue!',cancelado:'Pedido cancelado'};
+var _TRACK_STATUS_ICON = {recebido:'📥',preparando:'📦',saiu:'🛵',entregue:'✅',cancelado:'❌'};
+var _TRACK_STATUS_LABEL = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saiu para entrega!',entregue:'Pedido entregue!',cancelado:'Pedido cancelado'};
 
+var _BAR_TITULO = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saindo para entrega'};
 function _updateBarAtivo(status) {
   var bar = document.getElementById('pedido-ativo-bar');
   var iconEl = document.getElementById('pedido-ativo-icon');
   var labelEl = document.getElementById('pedido-ativo-label');
-  var scroll = document.getElementById('home-scroll');
+  var tituloEl = document.getElementById('pedido-ativo-titulo');
   if (!bar) return;
   var fim = status==='entregue'||status==='cancelado';
   bar.style.display = fim ? 'none' : 'flex';
-  if (scroll) scroll.style.paddingBottom = fim ? '72px' : '128px';
   if (iconEl) iconEl.textContent = _TRACK_STATUS_ICON[status]||'📦';
   if (labelEl) labelEl.textContent = _TRACK_STATUS_LABEL[status]||status;
+  if (tituloEl) tituloEl.textContent = _BAR_TITULO[status]||'Pedido em separação';
+}
+function abrirTrackingAtivo() {
+  if (_trackDocId) { startTracking(_trackDocId); showScreen('sc-track'); }
 }
 
 function startTracking(docId) {
@@ -1836,14 +1840,18 @@ function loadCategoriasFirestore() {
 
   var savedTrack  = localStorage.getItem('ec_track');
 
-  if (savedScreen === 'sc-track' && savedTrack && temConta) {
+  // sempre iniciar tracking se houver pedido ativo, independente da tela
+  if (savedTrack && getCliente()) {
     _trackDocId = savedTrack;
+    startTracking(savedTrack);
+  }
+
+  if (savedScreen === 'sc-track' && savedTrack && temConta) {
     if (savedMode && savedLoc) {
       _modo = savedMode;
       document.getElementById('loc-mode').textContent = savedMode==='entrega' ? 'Entrega: ' : 'Retirar na Loja: ';
       document.getElementById('loc-val').textContent = savedLoc;
     }
-    startTracking(savedTrack);
     showScreen('sc-track');
     loadProdutosFirestore();
   } else if (savedScreen === 'sc-home' && savedMode && savedLoc && temConta) {

@@ -70,6 +70,8 @@
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
     .btn-red { background: var(--red); color: #fff; }
     .btn-green { background: var(--green); color: #fff; }
+    .btn-orange { background: #f97316; color: #fff; }
+    .btn-blue { background: #3b82f6; color: #fff; }
     .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
 
     /* ── BADGES ── */
@@ -376,6 +378,19 @@
       <div id="cfg-msg" style="text-align:center;font-size:13px;font-weight:700;margin-top:12px;min-height:20px"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── MODAL SAIU PARA ENTREGA ── -->
+<div class="modal-overlay" id="dlg-saiu" style="display:none">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div style="font-size:40px;margin-bottom:12px">🛵</div>
+    <div class="modal-title" style="justify-content:center">Notificar cliente?</div>
+    <p style="font-size:14px;color:var(--text2);margin:0 0 20px">O pedido <strong id="dlg-saiu-num"></strong> saiu para entrega.<br>Deseja avisar o cliente pelo WhatsApp?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="_executarSaiu(false)">Não avisar</button>
+      <button class="btn btn-green" onclick="_executarSaiu(true)">✅ Sim, avisar</button>
+    </div>
   </div>
 </div>
 
@@ -956,9 +971,9 @@ var STATUS_LABELS = {
   cancelado:  {label:'Cancelado',  badge:'badge-red'},
 };
 var STATUS_NEXT = {
-  recebido:   [{s:'preparando',label:'Iniciar preparo',cls:'btn-y'},     {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
-  preparando: [{s:'saiu',      label:'Saiu p/ entrega',cls:'btn-green'}, {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
-  saiu:       [{s:'entregue',  label:'Marcar entregue',cls:'btn-green'}],
+  recebido:   [{s:'preparando', label:'▶ Iniciar Separação',   cls:'btn-green'},  {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
+  preparando: [{s:'saiu',       label:'✅ Finalizar Separação', cls:'btn-orange', notificar:true}, {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
+  saiu:       [{s:'entregue',   label:'🏁 Marcar Entregue',    cls:'btn-blue'}],
   entregue:   [],
   cancelado:  [],
 };
@@ -1000,7 +1015,10 @@ function _fetchPedidos() {
         var st = STATUS_LABELS[d.status] || STATUS_LABELS.recebido;
         var itens = (d.itens||[]).map(function(i){ return i.qty+'x '+i.name; }).join(', ');
         var btns = (STATUS_NEXT[d.status]||[]).map(function(b){
-          return '<button class="btn '+b.cls+' btn-sm" onclick="updateStatus(\''+doc.id+'\',\''+b.s+'\')">'+b.label+'</button>';
+          var fn = b.notificar
+            ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(d.phone?'\''+d.phone.replace(/\D/g,'')+'\'':'null')+')'
+            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\')';
+          return '<button class="btn '+b.cls+' btn-sm" onclick="'+fn+'">'+b.label+'</button>';
         }).join('');
         var waLink = d.phone ? '<a href="https://wa.me/55'+d.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬 WhatsApp</a>' : '';
         return '<div class="pedido-row">'
@@ -1118,6 +1136,24 @@ function stat(val,label){ return '<div class="stat-card"><div class="stat-val">'
 
 function updateStatus(docId, status) {
   db.collection('pedidos').doc(docId).update({ status: status })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
+
+var _saiu_docId = null, _saiu_num = null, _saiu_phone = null;
+function confirmarSaiu(docId, num, phone) {
+  _saiu_docId = docId; _saiu_num = num; _saiu_phone = phone;
+  document.getElementById('dlg-saiu-num').textContent = num;
+  document.getElementById('dlg-saiu').style.display = 'flex';
+}
+function _executarSaiu(notificar) {
+  document.getElementById('dlg-saiu').style.display = 'none';
+  db.collection('pedidos').doc(_saiu_docId).update({ status: 'saiu' })
+    .then(function() {
+      if (notificar && _saiu_phone) {
+        var msg = '🛵 Olá! Seu pedido '+_saiu_num+' saiu para entrega e chegará em breve. Obrigado por comprar no Econômico Delivery!';
+        window.open('https://wa.me/55'+_saiu_phone+'?text='+encodeURIComponent(msg),'_blank');
+      }
+    })
     .catch(function(e){ alert('Erro: '+e.message); });
 }
 
@@ -1422,6 +1458,7 @@ function seedProdutos() {
   batch.commit().then(function(){ alert('Produtos importados!'); loadProdutos(); }).catch(function(e){ alert('Erro: '+e.message); });
 }
 
+/* ── MODAL SAIU PARA ENTREGA inserido via JS abaixo ── */
 function openModal(docId) {
   _editId = docId || null;
   document.getElementById('modal-title').textContent = docId ? 'Editar Produto' : 'Novo Produto';
