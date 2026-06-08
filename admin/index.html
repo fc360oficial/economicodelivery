@@ -503,10 +503,11 @@ var db = firebase.firestore();
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function entrarAdmin() {
-  var aba = localStorage.getItem('ec_admin_tab') || 'pedidos';
-  goTab(aba);
+  var aba = localStorage.getItem('ec_admin_tab');
+  if (!aba || _TABS.indexOf(aba) < 0) aba = 'pedidos';
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'flex';
+  goTab(aba);
   if (aba !== 'pedidos') iniciarPollingPedidos();
   loadProdutos();
   loadBanners();
@@ -552,6 +553,8 @@ function logout() {
   document.getElementById('admin-screen').style.display = 'none';
   document.getElementById('login-pwd').value = '';
 }
+// limpa aba inválida caso tenha ficado lixo no localStorage
+(function(){ var t = localStorage.getItem('ec_admin_tab'); if (t && _TABS.indexOf(t) < 0) localStorage.removeItem('ec_admin_tab'); })();
 if (localStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
