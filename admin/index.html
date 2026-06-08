@@ -1119,7 +1119,7 @@ function _fetchPedidos() {
         var btns = (STATUS_NEXT[d.status]||[]).map(function(b){
           var fn = b.notificar
             ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(d.phone?'\''+d.phone.replace(/\D/g,'')+'\'':'null')+')'
-            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\')';
+            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\',this)';
           return '<button class="btn '+b.cls+' btn-sm" onclick="'+fn+'">'+b.label+'</button>';
         }).join('');
         var waLink = d.phone ? '<a href="https://wa.me/55'+d.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬 WhatsApp</a>' : '';
@@ -1249,9 +1249,14 @@ function renderStats(snap) {
 }
 function stat(val,label){ return '<div class="stat-card"><div class="stat-val">'+val+'</div><div class="stat-label">'+label+'</div></div>'; }
 
-function updateStatus(docId, status) {
+function updateStatus(docId, status, btn) {
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = '⏳'; }
   db.collection('pedidos').doc(docId).update({ status: status })
-    .catch(function(e){ alert('Erro: '+e.message); });
+    .then(function(){ _fetchPedidos(); })
+    .catch(function(e){
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      alert('Erro: '+e.message);
+    });
 }
 
 // ── SAIU PARA ENTREGA + CUPOM FISCAL ─────────────────────────────────────────
