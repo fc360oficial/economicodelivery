@@ -1012,13 +1012,23 @@ function _fetchPedidos() {
             +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
             +(d.agendado&&d.agendadoPara?'<br>📅 Agendado para: <strong>'+d.agendadoPara+'</strong>':'')
           +'</div>'
-          +'<div class="pedido-status-btns">'+btns+waLink+'</div>'
+          +'<div class="pedido-status-btns">'+btns+waLink+_btnPagamento(doc.id,d)+'</div>'
           +'</div>';
       }).join('');
     })
     .catch(function(e){ list.innerHTML = '<div class="loading">Erro: '+e.message+' · <button class="btn btn-outline btn-sm" onclick="loadPedidos()">Tentar novamente</button></div>'; });
 }
 
+function _btnPagamento(id, d) {
+  if (d.pagamento === 'card') return '<span class="badge badge-gray" style="align-self:center">💳 Cartão entrega</span>';
+  if (d.pagamentoPago) return '<span class="badge badge-green" style="align-self:center">✅ PIX confirmado</span>';
+  return '<button class="btn btn-outline btn-sm" style="color:var(--y);border-color:var(--y)" onclick="confirmarPagamento(\''+id+'\')">✅ Confirmar PIX</button>';
+}
+function confirmarPagamento(id) {
+  db.collection('pedidos').doc(id).update({ pagamentoPago: true })
+    .then(function(){ showToast('Pagamento confirmado!'); _fetchPedidos(); })
+    .catch(function(e){ alert('Erro: '+e.message); });
+}
 function renderStats(snap) {
   var counts = {recebido:0, preparando:0, saiu:0, entregue:0};
   var total = 0;
