@@ -468,7 +468,7 @@
 </div>
 
 <!-- ══════════════════ LOGIN ══════════════════ -->
-<div class="screen active" id="sc-login">
+<div class="screen" id="sc-login">
 
   <!-- VIEW: escolha -->
   <div class="login-view active" id="lv-main">
@@ -527,7 +527,7 @@
 </div>
 
 <!-- ══════════════════ SPLASH ══════════════════ -->
-<div class="screen" id="sc-splash">
+<div class="screen active" id="sc-splash">
   <img src="./logo.png?v=3" alt="Econômico Delivery" class="splash-logo"
        onerror="this.outerHTML='<div style=\'font-size:22px;font-weight:900;color:#e31e24;margin-bottom:52px\'>Econômico Delivery</div>'">
   <div class="splash-label">Insira seu CEP</div>
@@ -1262,17 +1262,22 @@ function lookupCep(cep) {
 
 function entrar(mode) {
   _modo = mode;
-  var cep = document.getElementById('splash-cep').value.trim();
+  var cep    = document.getElementById('splash-cep').value.trim();
   var street = document.getElementById('cep-street').textContent.replace('📍 ','');
-  var loc = street || cep || C.address;
+  var loc    = street || cep || C.address;
   document.getElementById('loc-mode').textContent = mode==='entrega' ? 'Entrega: ' : 'Retirar na Loja: ';
-  document.getElementById('loc-val').textContent = loc;
-  localStorage.setItem('ec_screen','sc-home');
+  document.getElementById('loc-val').textContent  = loc;
   localStorage.setItem('ec_mode', mode);
-  localStorage.setItem('ec_loc', loc);
-  showScreen('sc-home');
-  renderAll();
-  loadProdutosFirestore();
+  localStorage.setItem('ec_loc',  loc);
+  var temConta = !!getCliente() || sessionStorage.getItem('ec_visitante') === '1';
+  if (temConta) {
+    localStorage.setItem('ec_screen','sc-home');
+    showScreen('sc-home');
+    renderAll();
+    loadProdutosFirestore();
+  } else {
+    showScreen('sc-login');
+  }
 }
 
 // ── CATEGORIES ───────────────────────────────────────────────────────────────
@@ -2091,10 +2096,9 @@ function loadCategoriasFirestore() {
     showScreen('sc-home');
     renderAll();
     loadProdutosFirestore();
-  } else if (temConta) {
+  } else {
     showScreen('sc-splash');
   }
-  // else: sc-login já está active por padrão
 
   loadBannersFirestore();
   loadCategoriasFirestore();
