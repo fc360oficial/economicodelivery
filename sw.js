@@ -6,8 +6,10 @@ self.addEventListener('fetch', function(e) {
   var url = new URL(e.request.url);
 
   // Quando o PWA tenta navegar para /admin/, intercepta e mostra tela de saída
-  if (e.request.mode === 'navigate' && url.pathname.includes('/admin')) {
-    var adminUrl = url.href;
+  // Se já tiver ?direct=1, deixa passar normalmente (já está no navegador real)
+  if (e.request.mode === 'navigate' && url.pathname.includes('/admin') && url.searchParams.get('direct') !== '1') {
+    var sep = url.href.includes('?') ? '&' : '?';
+    var directUrl = url.href + sep + 'direct=1';
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8">'
       + '<meta name="viewport" content="width=device-width,initial-scale=1">'
       + '<title>Painel Admin</title>'
@@ -29,7 +31,7 @@ self.addEventListener('fetch', function(e) {
       + '<div class="icon">🔐</div>'
       + '<h2>Painel Admin</h2>'
       + '<p>O painel precisa ser aberto<br>no navegador do celular.</p>'
-      + '<a href="' + adminUrl + '" target="_blank" class="btn-y">Abrir Admin →</a>'
+      + '<a href="' + directUrl + '" target="_blank" class="btn-y">Abrir Admin →</a>'
       + '<a href="/" onclick="history.back();return false;" class="btn-out">← Voltar ao App</a>'
       + '</body></html>';
 
