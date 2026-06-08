@@ -1363,6 +1363,7 @@ function renderCart() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
+  if (id === 'sc-login') showLoginView('lv-main');
   window.scrollTo(0,0);
 }
 function goCart() { renderCart(); showScreen('sc-cart'); }
