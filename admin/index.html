@@ -209,6 +209,19 @@
 
 <div id="toast"></div>
 
+<!-- ── ALERTA NOVO PEDIDO ── -->
+<div id="novo-pedido-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);align-items:center;justify-content:center">
+  <div style="background:#FFC600;border-radius:24px;padding:36px 40px;text-align:center;max-width:320px;width:90%;animation:npPop .3s cubic-bezier(.34,1.56,.64,1)">
+    <div style="font-size:64px;line-height:1;margin-bottom:8px">🛍️</div>
+    <div style="font-size:22px;font-weight:900;color:#1a1a1a;margin-bottom:4px">NOVO PEDIDO!</div>
+    <div id="np-num" style="font-size:16px;font-weight:700;color:#333;margin-bottom:24px"></div>
+    <button onclick="fecharAlertaPedido()" style="background:#1a1a1a;color:#FFC600;border:none;border-radius:12px;padding:12px 32px;font-size:14px;font-weight:800;cursor:pointer;width:100%">Ver pedido →</button>
+  </div>
+</div>
+<style>
+@keyframes npPop { from { transform:scale(.5); opacity:0; } to { transform:scale(1); opacity:1; } }
+</style>
+
 <!-- ── LOGIN ── -->
 <div id="login-screen">
   <div class="login-box">
@@ -592,21 +605,60 @@ function showToast(msg, cor) {
   setTimeout(function(){ t.classList.remove('show'); }, 3500);
 }
 
-function playAlert() {
+var _npTitleTimer = null;
+
+function playAlert(num) {
+  // ── som de caixa registradora ──
   try {
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.18, 0.36].forEach(function(delay) {
+    var notas = [
+      {f:1046, t:0,    dur:0.12},
+      {f:1318, t:0.13, dur:0.12},
+      {f:1568, t:0.26, dur:0.15},
+      {f:1318, t:0.42, dur:0.08},
+      {f:1568, t:0.50, dur:0.25},
+    ];
+    notas.forEach(function(n) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.35, ctx.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + 0.18);
+      osc.frequency.value = n.f;
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0.5, ctx.currentTime + n.t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + n.t + n.dur);
+      osc.start(ctx.currentTime + n.t);
+      osc.stop(ctx.currentTime + n.t + n.dur + 0.02);
     });
   } catch(e) {}
+
+  // ── overlay visual ──
+  document.getElementById('np-num').textContent = num ? 'Pedido ' + num : '';
+  var ov = document.getElementById('novo-pedido-overlay');
+  ov.style.display = 'flex';
+
+  // ── título da aba piscando ──
+  var orig = document.title;
+  var piscando = true;
+  clearInterval(_npTitleTimer);
+  _npTitleTimer = setInterval(function() {
+    document.title = piscando ? '🛍 NOVO PEDIDO!' : orig;
+    piscando = !piscando;
+  }, 600);
+
+  // ── notificação do navegador ──
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification('🛍 Novo Pedido!', { body: num || '', icon: '/economicodelivery/logo.png' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }
+}
+
+function fecharAlertaPedido() {
+  document.getElementById('novo-pedido-overlay').style.display = 'none';
+  clearInterval(_npTitleTimer);
+  document.title = 'Admin · Econômico Delivery';
 }
 function doLogin() {
   var pwd = document.getElementById('login-pwd').value;
@@ -1050,8 +1102,7 @@ function _fetchPedidos() {
       if (_pedidosKnown !== null) {
         snap.docs.forEach(function(doc) {
           if (!_pedidosKnown[doc.id]) {
-            playAlert();
-            showToast('🛍 Novo pedido: ' + (doc.data().num || ''));
+            playAlert(doc.data().num || '');
           }
         });
       }
