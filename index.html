@@ -985,24 +985,9 @@ function loadConfigFirestore() {
     if (elTaxa) elTaxa.textContent = C.fee > 0 ? fmt(C.fee) : 'Grátis';
     if (elGratis) elGratis.textContent = fmt(C.freeAbove);
     if (d.cepLoja) {
-      var cepLoja = d.cepLoja.replace(/\D/g,'');
-      fetch('https://brasilapi.com.br/api/cep/v2/'+cepLoja)
-        .then(function(r){ return r.json(); })
-        .then(function(cd){
-          var coords = cd.location && cd.location.coordinates;
-          if (coords && coords.latitude) {
-            _storeCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
-            _atualizarRangeUI();
-          } else {
-            _geocodePorNominatim(cepLoja, function(c){
-              if (c) { _storeCoords = c; _atualizarRangeUI(); }
-            });
-          }
-        }).catch(function(){
-          _geocodePorNominatim(cepLoja, function(c){
-            if (c) { _storeCoords = c; _atualizarRangeUI(); }
-          });
-        });
+      _geocodeCep(d.cepLoja.replace(/\D/g,''), function(info, coords){
+        if (coords) { _storeCoords = coords; _atualizarRangeUI(); }
+      });
     }
   }).catch(function(){});
 }
@@ -1315,44 +1300,43 @@ function _atualizarRangeUI() {
   }
 }
 
-function _geocodePorNominatim(cep, callback) {
-  fetch('https://nominatim.openstreetmap.org/search?postalcode='+cep+'&country=BR&format=json&limit=1',
-    { headers: { 'Accept-Language': 'pt-BR' } })
+function _geocodeCep(cep, onResult) {
+  fetch('https://brasilapi.com.br/api/cep/v2/'+cep)
     .then(function(r){ return r.json(); })
-    .then(function(res){
-      if (res && res.length > 0) callback({ lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) });
-      else callback(null);
+    .then(function(d){
+      if (d.message || d.errors) { onResult(null, null); return; }
+      var info = { logradouro: d.street||'', bairro: d.neighborhood||'', localidade: d.city||'', uf: d.state||'' };
+      var coords = d.location && d.location.coordinates;
+      if (coords && coords.latitude) {
+        onResult(info, { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) });
+      } else {
+        var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+          + '&city='    + encodeURIComponent(d.city  ||'')
+          + '&state='   + encodeURIComponent(d.state ||'')
+          + '&country=Brazil';
+        fetch(url)
+          .then(function(r){ return r.json(); })
+          .then(function(res){
+            var c = res && res.length ? { lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) } : null;
+            onResult(info, c);
+          })
+          .catch(function(){ onResult(info, null); });
+      }
     })
-    .catch(function(){ callback(null); });
+    .catch(function(){ onResult(null, null); });
 }
 
 function lookupCep(cep) {
   document.getElementById('cep-street').textContent = 'Buscando...';
   _cepData = null; _userCoords = null;
   _atualizarRangeUI();
-  fetch('https://brasilapi.com.br/api/cep/v2/'+cep)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (d.message || d.errors) { document.getElementById('cep-street').textContent = 'CEP não encontrado'; return; }
-      _cepData = { logradouro: d.street||'', bairro: d.neighborhood||'', localidade: d.city||'', uf: d.state||'' };
-      var str = d.street ? d.street+(d.neighborhood?', '+d.neighborhood:'') : d.neighborhood||d.city||'';
-      document.getElementById('cep-street').textContent = str ? '📍 '+str : '';
-      var coords = d.location && d.location.coordinates;
-      if (coords && coords.latitude) {
-        _userCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
-        _atualizarRangeUI();
-      } else {
-        _geocodePorNominatim(cep, function(c){
-          if (c) { _userCoords = c; _atualizarRangeUI(); }
-        });
-      }
-    })
-    .catch(function(){
-      document.getElementById('cep-street').textContent = '';
-      _geocodePorNominatim(cep, function(c){
-        if (c) { _userCoords = c; _atualizarRangeUI(); }
-      });
-    });
+  _geocodeCep(cep, function(info, coords){
+    if (!info) { document.getElementById('cep-street').textContent = 'CEP não encontrado'; return; }
+    _cepData = info;
+    var str = info.logradouro ? info.logradouro+(info.bairro?', '+info.bairro:'') : info.bairro||info.localidade||'';
+    document.getElementById('cep-street').textContent = str ? '📍 '+str : '';
+    if (coords) { _userCoords = coords; _atualizarRangeUI(); }
+  });
 }
 
 function entrar(mode) {
