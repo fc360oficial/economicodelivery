@@ -265,7 +265,17 @@
       <div class="stats" id="stats-area"></div>
       <div class="toolbar">
         <div class="toolbar-title">Pedidos</div>
-        <button class="btn btn-outline" onclick="loadPedidos()">↻ Atualizar</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="filtro-status" onchange="_fetchPedidos()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;font-family:inherit">
+            <option value="">Todos</option>
+            <option value="recebido">Recebidos</option>
+            <option value="preparando">Preparando</option>
+            <option value="saiu">Saiu p/ entrega</option>
+            <option value="entregue">Entregues</option>
+            <option value="cancelado">Cancelados</option>
+          </select>
+          <button class="btn btn-outline" onclick="loadPedidos()">↻ Atualizar</button>
+        </div>
       </div>
       <div class="card" id="pedidos-list"><div class="loading">Carregando...</div></div>
     </div>
@@ -398,6 +408,28 @@
       <div id="cfg-msg" style="text-align:center;font-size:13px;font-weight:700;margin-top:12px;min-height:20px"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- ── MODAL CANCELAMENTO ── -->
+<div class="modal-overlay" id="dlg-cancelar" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">❌ Cancelar Pedido <span id="dlg-cancel-num" style="color:var(--red)"></span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Informe o motivo do cancelamento. Isso ficará registrado para auditoria.</div>
+    <select id="dlg-cancel-motivo-sel" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#111;color:var(--text);font-size:13px;font-family:inherit;margin-bottom:10px" onchange="document.getElementById('dlg-cancel-outro').style.display=this.value==='outro'?'block':'none'">
+      <option value="">Selecione o motivo...</option>
+      <option value="Produto indisponível em estoque">Produto indisponível em estoque</option>
+      <option value="Endereço fora da área de entrega">Endereço fora da área de entrega</option>
+      <option value="Pagamento não confirmado">Pagamento não confirmado</option>
+      <option value="Solicitação do cliente">Solicitação do cliente</option>
+      <option value="Pedido duplicado">Pedido duplicado</option>
+      <option value="outro">Outro (descrever)</option>
+    </select>
+    <textarea id="dlg-cancel-outro" placeholder="Descreva o motivo..." style="display:none;width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#111;color:var(--text);font-size:13px;font-family:inherit;min-height:80px;resize:vertical;margin-bottom:10px"></textarea>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-outline" onclick="document.getElementById('dlg-cancelar').style.display='none'" style="flex:1">Voltar</button>
+      <button class="btn btn-red" onclick="executarCancelamento()" style="flex:2">Confirmar cancelamento</button>
+    </div>
   </div>
 </div>
 
@@ -1083,8 +1115,8 @@ var STATUS_LABELS = {
   cancelado:  {label:'Cancelado',  badge:'badge-red'},
 };
 var STATUS_NEXT = {
-  recebido:   [{s:'preparando', label:'▶ Iniciar Separação',   cls:'btn-green'},  {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
-  preparando: [{s:'saiu',       label:'✅ Finalizar Separação', cls:'btn-orange', notificar:true}, {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm'}],
+  recebido:   [{s:'preparando', label:'▶ Iniciar Separação',   cls:'btn-green'},  {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm', cancelar:true}],
+  preparando: [{s:'saiu',       label:'✅ Finalizar Separação', cls:'btn-orange', notificar:true}, {s:'cancelado',label:'Cancelar',cls:'btn-red btn-sm', cancelar:true}],
   saiu:       [{s:'entregue',   label:'🏁 Marcar Entregue',    cls:'btn-blue'}],
   entregue:   [],
   cancelado:  [],
@@ -1106,7 +1138,11 @@ function loadPedidos() {
 
 function _fetchPedidos() {
   var list = document.getElementById('pedidos-list');
-  db.collection('pedidos').orderBy('createdAt','desc').limit(50).get()
+  var filtro = document.getElementById('filtro-status') ? document.getElementById('filtro-status').value : '';
+  var query = db.collection('pedidos').orderBy('createdAt','desc');
+  if (filtro) query = query.where('status','==',filtro);
+  query = query.limit(100);
+  query.get()
     .then(function(snap) {
       if (_pedidosKnown !== null) {
         snap.docs.forEach(function(doc) {
@@ -1127,9 +1163,11 @@ function _fetchPedidos() {
         var itens = (d.itens||[]).map(function(i){ return i.qty+'x '+i.name; }).join(', ');
         var phone = d.phone ? d.phone.replace(/\D/g,'') : '';
         var btns = (STATUS_NEXT[d.status]||[]).map(function(b){
-          var fn = b.notificar
-            ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(phone?'\''+phone+'\'':'null')+')'
-            : 'updateStatus(\''+doc.id+'\',\''+b.s+'\',this,\''+phone+'\',\''+encodeURIComponent(d.nome||'')+'\',\''+encodeURIComponent(d.num||'')+'\')';
+          var fn = b.cancelar
+            ? 'abrirCancelamento(\''+doc.id+'\',\''+encodeURIComponent(d.num||'')+'\',\''+phone+'\',\''+encodeURIComponent(d.nome||'')+'\')'
+            : b.notificar
+              ? 'confirmarSaiu(\''+doc.id+'\',\''+d.num+'\','+(phone?'\''+phone+'\'':'null')+')'
+              : 'updateStatus(\''+doc.id+'\',\''+b.s+'\',this,\''+phone+'\',\''+encodeURIComponent(d.nome||'')+'\',\''+encodeURIComponent(d.num||'')+'\')';
           return '<button class="btn '+b.cls+' btn-sm" onclick="'+fn+'">'+b.label+'</button>';
         }).join('');
         var waLink = d.phone ? '<a href="https://wa.me/55'+d.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-outline btn-sm">💬 WhatsApp</a>' : '';
@@ -1145,6 +1183,8 @@ function _fetchPedidos() {
             +' · '+(d.pagamento==='pix'?'PIX':'Cartão')
             +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
             +(d.agendado&&d.agendadoPara?'<br>📅 Agendado para: <strong>'+d.agendadoPara+'</strong>':'')
+            +(d.status==='cancelado'&&d.motivoCancelamento?'<br><span style="color:var(--red)">❌ Motivo: '+d.motivoCancelamento+'</span>':'')
+            +(d.status==='cancelado'&&d.canceladoEm?'<br><span style="color:#666;font-size:11px">Cancelado em: '+d.canceladoEm+'</span>':'')
           +'</div>'
           +(d.ajustado && d.ajustes && d.ajustes.length ? '<div id="log-'+doc.id+'" style="display:none;margin-top:10px;background:#1a1a1a;border-radius:8px;padding:12px;font-size:12px">'
             +'<div style="font-weight:800;color:var(--y);margin-bottom:8px">📋 Histórico de ajustes</div>'
@@ -1270,6 +1310,41 @@ var _WA_MSG = {
     return '❌ Olá '+nome+', infelizmente seu pedido '+num+' foi cancelado. Entre em contato conosco pelo WhatsApp para mais informações.';
   }
 };
+
+// ── CANCELAMENTO COM MOTIVO ───────────────────────────────────────────────────
+var _cancelDoc = null, _cancelPhone = null, _cancelNome = null, _cancelNum = null;
+
+function abrirCancelamento(docId, numEnc, phone, nomeEnc) {
+  _cancelDoc   = docId;
+  _cancelPhone = phone;
+  _cancelNome  = decodeURIComponent(nomeEnc || '');
+  _cancelNum   = decodeURIComponent(numEnc  || '');
+  document.getElementById('dlg-cancel-num').textContent = _cancelNum;
+  document.getElementById('dlg-cancel-motivo-sel').value = '';
+  document.getElementById('dlg-cancel-outro').value = '';
+  document.getElementById('dlg-cancel-outro').style.display = 'none';
+  document.getElementById('dlg-cancelar').style.display = 'flex';
+}
+
+function executarCancelamento() {
+  var sel = document.getElementById('dlg-cancel-motivo-sel').value;
+  var outro = document.getElementById('dlg-cancel-outro').value.trim();
+  var motivo = sel === 'outro' ? outro : sel;
+  if (!motivo) { alert('Selecione ou descreva o motivo do cancelamento.'); return; }
+  document.getElementById('dlg-cancelar').style.display = 'none';
+  var agora = new Date();
+  db.collection('pedidos').doc(_cancelDoc).update({
+    status: 'cancelado',
+    motivoCancelamento: motivo,
+    canceladoEm: agora.toLocaleString('pt-BR')
+  }).then(function() {
+    _fetchPedidos();
+    if (_cancelPhone && _WA_MSG.cancelado) {
+      var msg = _WA_MSG.cancelado(_cancelNome, _cancelNum) + '\n\nMotivo: ' + motivo;
+      window.open('https://wa.me/55'+_cancelPhone+'?text='+encodeURIComponent(msg), '_blank');
+    }
+  }).catch(function(e){ alert('Erro: '+e.message); });
+}
 
 function updateStatus(docId, status, btn, phone, nomeEnc, numEnc) {
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = '⏳'; }
