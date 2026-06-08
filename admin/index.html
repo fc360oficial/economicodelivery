@@ -1076,6 +1076,7 @@ function _fetchPedidos() {
           +'<div class="pedido-top"><span class="pedido-num">'+d.num+'</span>'
           +'<span class="pedido-cliente">'+d.nome+' · '+(d.phone||'')+'</span>'
           +(d.agendado?'<span class="badge badge-blue">📅 Agendado</span>':'')
+          +(d.ajustado?'<span class="badge badge-red" style="cursor:pointer" onclick="toggleAjusteLog(\'log-'+doc.id+'\')">✏️ Ajustado</span>':'')
           +'<span class="badge '+st.badge+'">'+st.label+'</span>'
           +'<span class="pedido-total-txt">R$'+Number(d.total||0).toFixed(2).replace('.',',')+'</span></div>'
           +'<div class="pedido-detail">'+itens+'<br>'
@@ -1084,6 +1085,17 @@ function _fetchPedidos() {
             +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
             +(d.agendado&&d.agendadoPara?'<br>📅 Agendado para: <strong>'+d.agendadoPara+'</strong>':'')
           +'</div>'
+          +(d.ajustado && d.ajustes && d.ajustes.length ? '<div id="log-'+doc.id+'" style="display:none;margin-top:10px;background:#1a1a1a;border-radius:8px;padding:12px;font-size:12px">'
+            +'<div style="font-weight:800;color:var(--y);margin-bottom:8px">📋 Histórico de ajustes</div>'
+            +d.ajustes.map(function(a){
+              return '<div style="border-left:2px solid #333;padding-left:10px;margin-bottom:10px">'
+                +'<div style="color:#aaa;font-size:11px;margin-bottom:4px">🕐 '+a.dataStr+'</div>'
+                +(a.alteracoes||[]).map(function(l){ return '<div style="color:#eee">'+l+'</div>'; }).join('')
+                +'<div style="color:#aaa;margin-top:4px">R$'+Number(a.totalAnterior||0).toFixed(2).replace('.',',')
+                +' → <strong style="color:var(--y)">R$'+Number(a.novoTotal||0).toFixed(2).replace('.',',')+'</strong></div>'
+                +'</div>';
+            }).join('')
+            +'</div>' : '')
           +'<div class="pedido-status-btns">'+btns+waLink+_btnPagamento(doc.id,d)
           +(['recebido','preparando'].indexOf(d.status)>=0?'<button class="btn btn-outline btn-sm" onclick="abrirAjuste(\''+doc.id+'\')">✏️ Ajustar</button>':'')
           +'<button class="btn btn-outline btn-sm" onclick="imprimirPedido(\''+doc.id+'\',this)" style="margin-left:auto">🖨️ Imprimir</button>'
@@ -1321,6 +1333,10 @@ function _ajCalcTotal() {
   }
 }
 
+function toggleAjusteLog(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
 function fecharAjuste() { document.getElementById('dlg-ajustar').style.display = 'none'; }
 
 function salvarAjuste() {
@@ -1332,25 +1348,38 @@ function salvarAjuste() {
   var desc = _ajData.desconto || 0;
   var novoTotal = Math.max(0, sub - desc + frete);
   var itensTxt = itens.map(function(i){ return i.qty+'x '+i.name; }).join(', ');
-  db.collection('pedidos').doc(_ajDocId).update({ itens: itens, subtotal: sub, total: novoTotal, ajustado: true })
+  var agora = new Date();
+  var agoraStr = agora.toLocaleString('pt-BR');
+  var linhasAuditoria = (_ajOriginal||[]).map(function(orig) {
+    var novo = itens.find(function(it){ return it.name === orig.name; });
+    var novaQty = novo ? novo.qty : 0;
+    if (novaQty === orig.qty) return null;
+    if (novaQty === 0) return '❌ '+orig.name+': removido (era '+orig.qty+'x)';
+    return '✏️ '+orig.name+': '+orig.qty+'x → '+novaQty+'x';
+  }).filter(Boolean);
+
+  var logEntry = {
+    data: agora.toISOString(),
+    dataStr: agoraStr,
+    alteracoes: linhasAuditoria,
+    totalAnterior: _ajData.total || 0,
+    novoTotal: novoTotal
+  };
+
+  db.collection('pedidos').doc(_ajDocId).update({
+    itens: itens, subtotal: sub, total: novoTotal, ajustado: true,
+    ajustes: firebase.firestore.FieldValue.arrayUnion(logEntry)
+  })
     .then(function() {
       btn.textContent = '✅ Salvo!';
       showToast('Pedido ajustado!');
 
       // ── auditoria automática para o gestor ──
-      var agora = new Date().toLocaleString('pt-BR');
-      var linhasAuditoria = (_ajOriginal||[]).map(function(orig) {
-        var novo = itens.find(function(it){ return it.name === orig.name; });
-        var novaQty = novo ? novo.qty : 0;
-        if (novaQty === orig.qty) return null;
-        if (novaQty === 0) return '❌ '+orig.name+': removido (era '+orig.qty+'x)';
-        return '✏️ '+orig.name+': '+orig.qty+'x → '+novaQty+'x';
-      }).filter(Boolean);
       if (linhasAuditoria.length && _cfg && _cfg.whatsapp) {
         var msgAuditoria = '⚠️ *AJUSTE DE PEDIDO — AUDITORIA*\n'
           +'📦 Pedido: '+(_ajData.num||_ajDocId)+'\n'
           +'👤 Cliente: '+(_ajData.nome||'—')+'\n'
-          +'🕐 Horário: '+agora+'\n\n'
+          +'🕐 Horário: '+agoraStr+'\n\n'
           +'*Alterações realizadas:*\n'+linhasAuditoria.join('\n')+'\n\n'
           +'💰 Total original: R$'+Number(_ajData.total||0).toFixed(2).replace('.',',')+'\n'
           +'💰 Novo total: R$'+novoTotal.toFixed(2).replace('.',',');
