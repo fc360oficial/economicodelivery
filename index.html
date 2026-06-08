@@ -1842,6 +1842,14 @@ function startTracking(docId) {
     } else if (status==='entregue') {
       document.getElementById('track-info').textContent='🎉 Pedido entregue! Obrigado pela preferência.';
       localStorage.removeItem('ec_track');
+    } else if (status==='saiu' && doc.data().codigoEntrega) {
+      var cod = doc.data().codigoEntrega;
+      document.getElementById('track-info').innerHTML =
+        '<div style="background:#1a1400;border:2px solid #FFC600;border-radius:12px;padding:16px;margin:8px 0;text-align:center">'
+        + '<div style="font-size:12px;color:#aaa;margin-bottom:6px">🔐 Código de confirmação de entrega</div>'
+        + '<div style="font-size:48px;font-weight:900;color:#FFC600;letter-spacing:10px;font-family:monospace">'+cod+'</div>'
+        + '<div style="font-size:11px;color:#888;margin-top:6px">Mostre este código ao entregador</div>'
+        + '</div>';
     } else {
       document.getElementById('track-info').textContent='⏱ Atualizando em tempo real...';
     }
