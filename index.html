@@ -1309,19 +1309,35 @@ function _geocodeCep(cep, onResult) {
       var coords = d.location && d.location.coordinates;
       if (coords && coords.latitude) {
         onResult(info, { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) });
-      } else {
-        var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
-          + '&city='    + encodeURIComponent(d.city  ||'')
-          + '&state='   + encodeURIComponent(d.state ||'')
-          + '&country=Brazil';
-        fetch(url)
-          .then(function(r){ return r.json(); })
-          .then(function(res){
-            var c = res && res.length ? { lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) } : null;
-            onResult(info, c);
-          })
-          .catch(function(){ onResult(info, null); });
+        return;
       }
+      // Monta URL do Nominatim do mais específico para o menos específico
+      var base = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&country=Brazil'
+        + '&city='  + encodeURIComponent(d.city  ||'')
+        + '&state=' + encodeURIComponent(d.state ||'');
+      var url = d.street
+        ? base + '&street=' + encodeURIComponent(d.street)
+        : d.neighborhood
+          ? base + '&street=' + encodeURIComponent(d.neighborhood)
+          : base;
+      fetch(url)
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (res && res.length) {
+            onResult(info, { lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) });
+          } else if (d.street) {
+            // fallback: tenta só com cidade caso a rua não seja encontrada
+            fetch(base)
+              .then(function(r){ return r.json(); })
+              .then(function(res2){
+                var c = res2 && res2.length ? { lat: parseFloat(res2[0].lat), lng: parseFloat(res2[0].lon) } : null;
+                onResult(info, c);
+              }).catch(function(){ onResult(info, null); });
+          } else {
+            onResult(info, null);
+          }
+        })
+        .catch(function(){ onResult(info, null); });
     })
     .catch(function(){ onResult(null, null); });
 }
