@@ -900,6 +900,7 @@ function loadConfigFirestore() {
     var d = doc.data();
     if (d.whatsapp)    C.whatsapp    = d.whatsapp;
     if (d.nomeStore)   C.storeName   = d.nomeStore;
+    if (d.pixKey)      C.pixKey      = d.pixKey;
     if (d.taxaEntrega != null) C.fee         = d.taxaEntrega;
     if (d.pedidoMinimo!= null) C.minOrder    = d.pedidoMinimo;
     if (d.freteGratis != null) C.freeAbove   = d.freteGratis;

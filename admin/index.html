@@ -349,6 +349,7 @@
         <div class="config-grid">
           <div class="field"><label>Nome da loja</label><input id="cfg-nome" placeholder="Econômico Delivery"></div>
           <div class="field"><label>WhatsApp (só números)</label><input id="cfg-whatsapp" placeholder="5582999999999"></div>
+          <div class="field"><label>Chave PIX</label><input id="cfg-pix" placeholder="CPF, e-mail, telefone ou chave aleatória"></div>
         </div>
       </div>
       <div class="config-section">
@@ -821,6 +822,7 @@ function loadConfig() {
     var d = doc.data(); _cfg = d;
     document.getElementById('cfg-nome').value        = d.nomeStore   || '';
     document.getElementById('cfg-whatsapp').value    = d.whatsapp    || '';
+    document.getElementById('cfg-pix').value         = d.pixKey      || '';
     document.getElementById('cfg-frete').value       = d.taxaEntrega != null ? d.taxaEntrega : '';
     document.getElementById('cfg-minimo').value      = d.pedidoMinimo!= null ? d.pedidoMinimo: '';
     document.getElementById('cfg-gratis').value      = d.freteGratis != null ? d.freteGratis : '';
@@ -835,6 +837,7 @@ function saveConfig() {
   var data = {
     nomeStore:   document.getElementById('cfg-nome').value.trim(),
     whatsapp:    document.getElementById('cfg-whatsapp').value.trim(),
+    pixKey:      document.getElementById('cfg-pix').value.trim(),
     taxaEntrega: parseFloat(document.getElementById('cfg-frete').value)  || 0,
     pedidoMinimo:parseFloat(document.getElementById('cfg-minimo').value) || 0,
     freteGratis: parseFloat(document.getElementById('cfg-gratis').value) || 0,
