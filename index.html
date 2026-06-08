@@ -513,7 +513,7 @@
     <div class="login-label">E-mail <span style="font-size:10px;color:#999">(opcional)</span></div>
     <input class="login-input" type="email" id="lc-email" placeholder="seu@email.com">
     <div class="login-label">Data de nascimento <span style="font-size:10px;color:#999">(opcional)</span></div>
-    <input class="login-input" type="date" id="lc-nasc">
+    <input class="login-input" type="tel" id="lc-nasc" placeholder="DD/MM/AAAA" maxlength="10" oninput="maskData(this)">
     <label style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;cursor:pointer;font-size:13px;color:#555">
       <input type="checkbox" id="lc-marketing" checked style="width:18px;height:18px;accent-color:#FFC600;flex-shrink:0">
       Quero receber ofertas e promoções
@@ -1033,6 +1033,13 @@ function limparCliente() {
 function showLoginView(id) {
   document.querySelectorAll('.login-view').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
+  if (id === 'lv-cadastro' && _cepData) {
+    var endEl    = document.getElementById('lc-end');
+    var bairroEl = document.getElementById('lc-bairro');
+    if (endEl    && !endEl.value    && _cepData.logradouro) endEl.value    = _cepData.logradouro + ', ';
+    if (bairroEl && !bairroEl.value && _cepData.bairro)     bairroEl.value = _cepData.bairro;
+    if (endEl) { endEl.focus(); endEl.setSelectionRange(endEl.value.length, endEl.value.length); }
+  }
 }
 
 function continuarSemConta() {
@@ -1223,6 +1230,12 @@ function sub() { var s=0; for(var id in cart){var p=findP(id);if(p)s+=p.price*ca
 function frete() { if(_modo==='retirada') return 0; return sub()>=C.freeAbove?0:C.fee; }
 
 // ── SPLASH ───────────────────────────────────────────────────────────────────
+function maskData(el) {
+  var v = el.value.replace(/\D/g,'');
+  if (v.length > 2) v = v.slice(0,2)+'/'+v.slice(2);
+  if (v.length > 5) v = v.slice(0,5)+'/'+v.slice(5,9);
+  el.value = v;
+}
 function maskCep(el) {
   var v = el.value.replace(/\D/g,'');
   if (v.length>5) v = v.slice(0,5)+'-'+v.slice(5,8);
@@ -1231,12 +1244,16 @@ function maskCep(el) {
   else document.getElementById('cep-street').textContent = '';
 }
 
+var _cepData = null;
+
 function lookupCep(cep) {
   document.getElementById('cep-street').textContent = 'Buscando...';
+  _cepData = null;
   fetch('https://viacep.com.br/ws/'+cep+'/json/')
     .then(function(r){return r.json();})
     .then(function(d){
       if (d.erro) { document.getElementById('cep-street').textContent = 'CEP não encontrado'; return; }
+      _cepData = d;
       var str = d.logradouro ? d.logradouro+(d.bairro?', '+d.bairro:'') : d.bairro||d.localidade;
       document.getElementById('cep-street').textContent = '📍 '+str;
     })
