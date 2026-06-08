@@ -1419,6 +1419,8 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
   if (id === 'sc-login') showLoginView('lv-main');
+  if (id === 'sc-track') localStorage.setItem('ec_screen','sc-track');
+  else if (id === 'sc-home') localStorage.setItem('ec_screen','sc-home');
   window.scrollTo(0,0);
 }
 function goCart() { renderCart(); showScreen('sc-cart'); }
@@ -1575,7 +1577,6 @@ function confirmar() {
   document.getElementById('wa-btn').href='https://wa.me/'+C.whatsapp+'?text='+encodeURIComponent(msg);
   var now=new Date();
   var dataStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  saveOrder({num:num,data:dataStr,itens:itens,total:fmt(total),modo:_modo==='entrega'?'Entrega':'Retirada'});
   var pedidoData = {
     num:num, nome:nome, phone:phone,
     modo:_modo, endereco:addr||C.address,
@@ -1590,6 +1591,8 @@ function confirmar() {
   };
   db.collection('pedidos').add(pedidoData).then(function(ref) {
     _trackDocId = ref.id;
+    localStorage.setItem('ec_track', ref.id);
+    saveOrder({num:num, data:dataStr, itens:itens, total:fmt(total), modo:_modo==='entrega'?'Entrega':'Retirada', docId:ref.id});
     if (_cuponAplicado) db.collection('cupons').doc(_cuponAplicado.id).update({ usoAtual: firebase.firestore.FieldValue.increment(1) });
     var c = getCliente();
     if (c && c.phone) {
@@ -1624,8 +1627,10 @@ function startTracking(docId) {
     }).join('');
     if (status==='cancelado') {
       document.getElementById('track-info').textContent='❌ Pedido cancelado. Entre em contato com a loja.';
+      localStorage.removeItem('ec_track');
     } else if (status==='entregue') {
       document.getElementById('track-info').textContent='🎉 Pedido entregue! Obrigado pela preferência.';
+      localStorage.removeItem('ec_track');
     } else {
       document.getElementById('track-info').textContent='⏱ Atualizando em tempo real...';
     }
@@ -1727,6 +1732,10 @@ function saveOrder(order) {
 function getOrders() {
   try { return JSON.parse(localStorage.getItem('ec_orders')||'[]'); } catch(e){ return []; }
 }
+var _STATUS_LABEL = {
+  recebido:'📥 Recebido', preparando:'👨‍🍳 Preparando', saiu:'🛵 Saiu para entrega',
+  entregue:'✅ Entregue', cancelado:'❌ Cancelado'
+};
 function renderPedidos() {
   var body = document.getElementById('sub-pedidos-body');
   if (!body) return;
@@ -1740,12 +1749,35 @@ function renderPedidos() {
     return;
   }
   body.innerHTML = orders.map(function(o){
+    var statusHtml = o.docId
+      ? '<div class="pedido-status" id="pst-'+o.docId+'"><span style="color:#aaa;font-size:11px">Carregando status…</span></div>'
+      + '<button onclick="abrirTracking(\''+o.docId+'\')" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;border:1px solid var(--red);color:var(--red);background:none;font-size:12px;font-weight:700;cursor:pointer">📍 Acompanhar pedido</button>'
+      : '';
     return '<div class="pedido-card">'
       +'<div class="pedido-top"><span class="pedido-num">'+o.num+'</span><span class="pedido-data">'+o.data+'</span></div>'
       +'<div class="pedido-itens">'+o.itens+'</div>'
       +'<div class="pedido-total">Total: '+o.total+(o.modo?' · '+o.modo:'')+'</div>'
+      +statusHtml
       +'</div>';
   }).join('');
+  orders.forEach(function(o){
+    if (!o.docId) return;
+    db.collection('pedidos').doc(o.docId).get().then(function(doc){
+      var el = document.getElementById('pst-'+o.docId);
+      if (!el) return;
+      if (!doc.exists) { el.innerHTML = ''; return; }
+      var st = doc.data().status || 'recebido';
+      var label = _STATUS_LABEL[st] || st;
+      var color = st==='entregue'?'var(--green)':st==='cancelado'?'var(--red)':'#b45309';
+      el.innerHTML = '<span style="font-size:12px;font-weight:700;color:'+color+'">'+label+'</span>';
+    }).catch(function(){});
+  });
+}
+function abrirTracking(docId) {
+  _trackDocId = docId;
+  startTracking(docId);
+  closeMenu();
+  showScreen('sc-track');
 }
 
 // ── SW ───────────────────────────────────────────────────────────────────────
@@ -1775,7 +1807,19 @@ function loadCategoriasFirestore() {
   var savedLoc    = localStorage.getItem('ec_loc');
   var temConta    = !!getCliente() || sessionStorage.getItem('ec_visitante') === '1';
 
-  if (savedScreen === 'sc-home' && savedMode && savedLoc && temConta) {
+  var savedTrack  = localStorage.getItem('ec_track');
+
+  if (savedScreen === 'sc-track' && savedTrack && temConta) {
+    _trackDocId = savedTrack;
+    if (savedMode && savedLoc) {
+      _modo = savedMode;
+      document.getElementById('loc-mode').textContent = savedMode==='entrega' ? 'Entrega: ' : 'Retirar na Loja: ';
+      document.getElementById('loc-val').textContent = savedLoc;
+    }
+    startTracking(savedTrack);
+    showScreen('sc-track');
+    loadProdutosFirestore();
+  } else if (savedScreen === 'sc-home' && savedMode && savedLoc && temConta) {
     _modo = savedMode;
     document.getElementById('loc-mode').textContent = savedMode==='entrega' ? 'Entrega: ' : 'Retirar na Loja: ';
     document.getElementById('loc-val').textContent = savedLoc;
