@@ -1678,7 +1678,7 @@ function aplicarCupon() {
       if (snap.empty) { msg.textContent='❌ Cupom inválido ou inativo'; msg.style.color='var(--red)'; return; }
       var doc = snap.docs[0]; var d = doc.data();
       if (d.usoMax > 0 && d.usoAtual >= d.usoMax) { msg.textContent='❌ Cupom esgotado'; msg.style.color='var(--red)'; return; }
-      _cuponAplicado = { id: doc.id, tipo: d.tipo, valor: d.valor };
+      _cuponAplicado = { id: doc.id, codigo: d.codigo, tipo: d.tipo, valor: d.valor };
       msg.textContent = '✅ Cupom aplicado! ' + (d.tipo==='percentual' ? d.valor+'% de desconto' : 'R$'+Number(d.valor).toFixed(2).replace('.',',')+' de desconto');
       msg.style.color = 'var(--green)';
       updCoSum();
@@ -1757,6 +1757,7 @@ function confirmar() {
     itens:Object.keys(cart).map(function(id){ var p=findP(id); return p?{id:id,name:p.name,qty:cart[id],price:p.price}:null; }).filter(Boolean),
     subtotal:sub(), desconto:desconto(), frete:frete(), total:total,
     cupon: _cuponAplicado ? _cuponAplicado.id : null,
+    codigoCupom: _cuponAplicado ? _cuponAplicado.codigo : null,
     status:'recebido',
     agendado: _pedidoAgendado,
     agendadoPara: _pedidoAgendado ? _agendadoPara : null,
