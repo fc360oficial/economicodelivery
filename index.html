@@ -338,6 +338,18 @@
     .order-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 28px; margin-bottom: 24px; width: 100%; }
     .order-box-label { font-size: 11px; color: var(--text3); }
     .order-box-num { font-size: 26px; font-weight: 800; color: var(--red); margin-top: 2px; }
+    /* ── MODAL AGENDAR ── */
+    .dlg-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;padding:24px; }
+    .dlg-overlay.open { display:flex; }
+    .dlg-box { background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center; }
+    .dlg-icon { font-size:44px;margin-bottom:10px; }
+    .dlg-title { font-size:17px;font-weight:800;color:#1a1a1a;margin-bottom:8px; }
+    .dlg-sub { font-size:13px;color:#666;line-height:1.5;margin-bottom:20px; }
+    .dlg-btns { display:flex;flex-direction:column;gap:10px; }
+    /* ── AGENDADO BOX ── */
+    .agendado-box { width:100%;background:#e8f4ff;border:1px solid #93c5fd;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:left; }
+    .agendado-box-lbl { font-size:11px;color:#3b82f6;font-weight:700;text-transform:uppercase;margin-bottom:4px; }
+    .agendado-box-val { font-size:14px;font-weight:800;color:#1e3a5f; }
     .pix-box { width: 100%; background: #fff9e6; border: 1px solid #ffe08a; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
     .pix-box-lbl { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
     .pix-box-key { font-size: 15px; font-weight: 700; color: var(--text); word-break: break-all; }
@@ -718,6 +730,19 @@
   <div id="cart-content" style="display:flex;flex-direction:column;flex:1"></div>
 </div>
 
+<!-- ══════════════════ MODAL AGENDAR ══════════════════ -->
+<div class="dlg-overlay" id="dlg-agendar">
+  <div class="dlg-box">
+    <div class="dlg-icon">🕐</div>
+    <div class="dlg-title">Loja fechada agora</div>
+    <div class="dlg-sub" id="dlg-agendar-sub">Mas você pode agendar seu pedido para quando a loja abrir.</div>
+    <div class="dlg-btns">
+      <button class="login-btn login-btn-primary" onclick="confirmarAgendamento()">📅 Sim, agendar pedido</button>
+      <button class="login-btn login-btn-ghost" onclick="fecharDlgAgendar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ CHECKOUT ══════════════════ -->
 <div class="screen" id="sc-checkout">
   <div class="page-header">
@@ -795,6 +820,12 @@
     <div class="order-box">
       <div class="order-box-label">Número do pedido</div>
       <div class="order-box-num" id="order-num">#000000</div>
+    </div>
+    <div id="agendado-sec" style="width:100%;display:none">
+      <div class="agendado-box">
+        <div class="agendado-box-lbl">📅 Pedido agendado</div>
+        <div class="agendado-box-val" id="agendado-para-txt"></div>
+      </div>
     </div>
     <div id="pix-sec" style="width:100%;display:none">
       <div class="pix-box">
@@ -1368,9 +1399,45 @@ function showScreen(id) {
 }
 function goCart() { renderCart(); showScreen('sc-cart'); }
 function goBack(sc) { if(sc==='sc-home') renderAll(); if(sc==='sc-cart') renderCart(); showScreen(sc); }
+var _pedidoAgendado = false;
+var _agendadoPara = '';
+
+function _textoAgendamento() {
+  if (!C.horario || !C.horario.abertura) return '';
+  var agora = new Date();
+  var partes = function(t){ var p=t.split(':'); return parseInt(p[0])*60+parseInt(p[1]); };
+  var atual = agora.getHours()*60+agora.getMinutes();
+  var abertura = partes(C.horario.abertura);
+  var amanha = atual > abertura; // já abriu e fechou hoje → amanhã; ainda não abriu → hoje
+  var d = new Date(agora);
+  if (amanha) d.setDate(d.getDate()+1);
+  return d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})+' às '+C.horario.abertura;
+}
+
+function abrirDlgAgendar() {
+  var txt = _textoAgendamento();
+  document.getElementById('dlg-agendar-sub').textContent =
+    txt ? 'Quer agendar para '+txt+'?' : 'Quer reservar seu pedido para quando a loja abrir?';
+  document.getElementById('dlg-agendar').classList.add('open');
+}
+function fecharDlgAgendar() {
+  document.getElementById('dlg-agendar').classList.remove('open');
+}
+function confirmarAgendamento() {
+  _pedidoAgendado = true;
+  _agendadoPara = _textoAgendamento();
+  fecharDlgAgendar();
+  _abrirCheckout();
+}
+
 function goCheckout() {
   if(!Object.keys(cart).length) return;
-  if(!lojaAberta()){ toast('🕐 Loja fechada. Horário: '+C.horario.abertura+' às '+C.horario.fechamento); return; }
+  _pedidoAgendado = false;
+  _agendadoPara = '';
+  if(!lojaAberta() && C.horario && C.horario.ativo){ abrirDlgAgendar(); return; }
+  _abrirCheckout();
+}
+function _abrirCheckout() {
   if(!getCliente()) {
     sessionStorage.setItem('ec_checkout_pendente','1');
     toast('⚠️ Faça seu cadastro para finalizar o pedido');
@@ -1458,9 +1525,16 @@ function confirmar() {
   var ps=document.getElementById('pix-sec');
   if(selPay_==='pix'&&C.pixKey){document.getElementById('pix-key').textContent=C.pixKey;ps.style.display='block';}
   else ps.style.display='none';
-  document.getElementById('success-msg').textContent=selMode==='entrega'
-    ?'Recebemos seu pedido! Em breve entraremos em contato para confirmar a entrega.'
-    :'Pedido recebido! Venha retirar na loja: '+C.address;
+  var agSec = document.getElementById('agendado-sec');
+  if (_pedidoAgendado && _agendadoPara) {
+    document.getElementById('agendado-para-txt').textContent = _agendadoPara;
+    agSec.style.display='block';
+  } else { agSec.style.display='none'; }
+  document.getElementById('success-msg').textContent = _pedidoAgendado
+    ? 'Pedido agendado! Prepararemos tudo para quando a loja abrir.'
+    : (selMode==='entrega'
+        ?'Recebemos seu pedido! Em breve entraremos em contato para confirmar a entrega.'
+        :'Pedido recebido! Venha retirar na loja: '+C.address);
   var itens=Object.keys(cart).map(function(id){var p=findP(id);return p?cart[id]+'x '+p.name:'';}).filter(Boolean).join(', ');
   var descTxt = desconto()>0?'\n🏷 Desconto: -'+fmt(desconto()):'';
   var msg='🛒 *Pedido '+num+'*\n👤 '+nome+'\n📱 '+phone+'\n'
@@ -1478,6 +1552,8 @@ function confirmar() {
     subtotal:sub(), desconto:desconto(), frete:frete(), total:total,
     cupon: _cuponAplicado ? _cuponAplicado.id : null,
     status:'recebido',
+    agendado: _pedidoAgendado,
+    agendadoPara: _pedidoAgendado ? _agendadoPara : null,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()
   };
   db.collection('pedidos').add(pedidoData).then(function(ref) {

@@ -1003,12 +1003,14 @@ function _fetchPedidos() {
         return '<div class="pedido-row">'
           +'<div class="pedido-top"><span class="pedido-num">'+d.num+'</span>'
           +'<span class="pedido-cliente">'+d.nome+' · '+(d.phone||'')+'</span>'
+          +(d.agendado?'<span class="badge badge-blue">📅 Agendado</span>':'')
           +'<span class="badge '+st.badge+'">'+st.label+'</span>'
           +'<span class="pedido-total-txt">R$'+Number(d.total||0).toFixed(2).replace('.',',')+'</span></div>'
           +'<div class="pedido-detail">'+itens+'<br>'
             +(d.modo==='entrega'?'🚚 '+d.endereco:'🏪 Retirada na loja')
             +' · '+(d.pagamento==='pix'?'PIX':'Cartão')
             +(d.createdAt?' · '+(d.createdAt.toDate?d.createdAt.toDate().toLocaleString('pt-BR'):''):'')
+            +(d.agendado&&d.agendadoPara?'<br>📅 Agendado para: <strong>'+d.agendadoPara+'</strong>':'')
           +'</div>'
           +'<div class="pedido-status-btns">'+btns+waLink+'</div>'
           +'</div>';
