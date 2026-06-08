@@ -536,7 +536,7 @@
   <div id="cep-range-warn" style="display:none;background:#fff7ed;border:1px solid #f97316;border-radius:12px;padding:14px 16px;margin-bottom:16px;text-align:center;width:100%">
     <div style="font-size:22px;margin-bottom:4px">🚫</div>
     <div style="font-size:13px;font-weight:800;color:#9a3412">CEP fora da rota de entrega</div>
-    <div style="font-size:12px;color:#7c2d12;margin-top:4px;line-height:1.5">Seu endereço está fora da nossa área de entrega.<br>Você pode retirar o pedido na loja.</div>
+    <div id="cep-range-dist" style="font-size:12px;color:#7c2d12;margin-top:4px;line-height:1.5"></div>
   </div>
   <div class="splash-btns">
     <button class="splash-btn btn-red" id="btn-splash-entrega" onclick="entrar('entrega')">🚚 &nbsp;RECEBER EM CASA</button>
@@ -1287,10 +1287,23 @@ function haversineKm(lat1,lon1,lat2,lon2) {
 function _atualizarRangeUI() {
   var warn   = document.getElementById('cep-range-warn');
   var btnEnt = document.getElementById('btn-splash-entrega');
+  var distEl = document.getElementById('cep-range-dist');
   if (!warn || !btnEnt) return;
-  var foraDaRota = !!(_storeCoords && _userCoords && haversineKm(_storeCoords.lat,_storeCoords.lng,_userCoords.lat,_userCoords.lng) > _maxDistKm);
-  warn.style.display   = foraDaRota ? 'block' : 'none';
-  btnEnt.style.display = foraDaRota ? 'none'  : 'block';
+  if (_storeCoords && _userCoords) {
+    var dist = haversineKm(_storeCoords.lat,_storeCoords.lng,_userCoords.lat,_userCoords.lng);
+    var foraDaRota = dist > _maxDistKm;
+    warn.style.display   = foraDaRota ? 'block' : 'none';
+    btnEnt.style.display = foraDaRota ? 'none'  : 'block';
+    if (foraDaRota && distEl) {
+      distEl.innerHTML = 'Seu endereço está a <strong>' + dist.toFixed(1).replace('.',',') + ' km</strong> da loja.<br>'
+        + 'Entregamos apenas até <strong>' + _maxDistKm + ' km</strong>.<br>'
+        + 'Você pode retirar o pedido na loja.';
+    }
+  } else {
+    warn.style.display   = 'none';
+    btnEnt.style.display = 'block';
+    if (distEl) distEl.innerHTML = '';
+  }
 }
 
 function lookupCep(cep) {
