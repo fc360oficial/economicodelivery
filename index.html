@@ -644,6 +644,11 @@
 
     <div class="menu-section">
       <div class="menu-section-label">A loja</div>
+      <div class="menu-item" onclick="openSub('sub-encarte');loadEncarteCliente()">
+        <span class="mi-icon">📄</span>
+        <div class="mi-text"><div class="mi-title">Encarte de Ofertas</div><div class="mi-sub">Veja as ofertas da semana</div></div>
+        <span class="mi-arrow">›</span>
+      </div>
       <div class="menu-item" onclick="openSub('sub-loja')">
         <span class="mi-icon">🏪</span>
         <div class="mi-text"><div class="mi-title">Sobre a loja</div><div class="mi-sub">Endereço, horário e contato</div></div>
@@ -670,6 +675,17 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- SUB: Encarte de Ofertas -->
+  <div class="menu-sub" id="sub-encarte">
+    <div class="menu-sub-hdr">
+      <button class="menu-sub-back" onclick="closeSub('sub-encarte')">←</button>
+      <span class="menu-sub-title">Encarte de Ofertas</span>
+    </div>
+    <div class="menu-sub-body" id="sub-encarte-body" style="padding:0">
+      <div style="padding:20px;text-align:center;color:#999;font-size:14px">Carregando...</div>
+    </div>
   </div>
 
   <!-- SUB: Meus Pedidos -->
@@ -1751,6 +1767,22 @@ function closeSub(id) {
 }
 function faleConosco() {
   window.open('https://wa.me/'+C.whatsapp+'?text=Olá! Preciso de ajuda com meu pedido no Econômico Delivery.','_blank');
+}
+
+function loadEncarteCliente() {
+  var el = document.getElementById('sub-encarte-body');
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:#999;font-size:14px">Carregando...</div>';
+  db.collection('encartes').orderBy('ordem').get().then(function(snap) {
+    if (snap.empty) {
+      el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#999"><div style="font-size:40px;margin-bottom:12px">📄</div><div>Nenhum encarte disponível no momento.</div></div>';
+      return;
+    }
+    el.innerHTML = snap.docs.map(function(doc) {
+      return '<img src="'+doc.data().img+'" style="width:100%;display:block;border-bottom:1px solid #111" onerror="this.style.display=\'none\'">';
+    }).join('');
+  }).catch(function() {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Erro ao carregar encarte.</div>';
+  });
 }
 
 // ── PEDIDOS (localStorage) ────────────────────────────────────────────────────
