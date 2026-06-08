@@ -501,6 +501,9 @@ firebase.initializeApp({
 });
 var db = firebase.firestore();
 
+// ── TABS (definido antes do login para estar disponível na inicialização) ──────
+var _TABS = ['pedidos','produtos','clientes','banners','relatorios','cupons','categorias','config'];
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function entrarAdmin() {
   var aba = localStorage.getItem('ec_admin_tab');
@@ -553,12 +556,9 @@ function logout() {
   document.getElementById('admin-screen').style.display = 'none';
   document.getElementById('login-pwd').value = '';
 }
-// limpa aba inválida caso tenha ficado lixo no localStorage
-(function(){ var t = localStorage.getItem('ec_admin_tab'); if (t && _TABS.indexOf(t) < 0) localStorage.removeItem('ec_admin_tab'); })();
 if (localStorage.getItem('ec_admin') === '1') { entrarAdmin(); }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
-var _TABS = ['pedidos','produtos','clientes','banners','relatorios','cupons','categorias','config'];
 function goTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(function(el,i){
     el.classList.toggle('active', _TABS[i]===tab);
