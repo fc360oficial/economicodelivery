@@ -1259,7 +1259,7 @@ function _executarSaiu(notificar) {
 }
 
 // ── AJUSTAR PEDIDO ────────────────────────────────────────────────────────────
-var _ajDocId = null, _ajData = null;
+var _ajDocId = null, _ajData = null, _ajOriginal = null;
 
 function abrirAjuste(docId) {
   _ajDocId = docId;
@@ -1270,6 +1270,8 @@ function abrirAjuste(docId) {
   db.collection('pedidos').doc(docId).get().then(function(doc) {
     if (!doc.exists) return;
     _ajData = doc.data();
+    // cópia profunda dos itens originais para auditoria
+    _ajOriginal = (doc.data().itens || []).map(function(it){ return {name:it.name, qty:it.qty, price:it.price}; });
     document.getElementById('aj-num').textContent = _ajData.num || '';
     _renderAjItems();
   });
@@ -1334,10 +1336,32 @@ function salvarAjuste() {
     .then(function() {
       btn.textContent = '✅ Salvo!';
       showToast('Pedido ajustado!');
+
+      // ── auditoria automática para o gestor ──
+      var agora = new Date().toLocaleString('pt-BR');
+      var linhasAuditoria = (_ajOriginal||[]).map(function(orig) {
+        var novo = itens.find(function(it){ return it.name === orig.name; });
+        var novaQty = novo ? novo.qty : 0;
+        if (novaQty === orig.qty) return null;
+        if (novaQty === 0) return '❌ '+orig.name+': removido (era '+orig.qty+'x)';
+        return '✏️ '+orig.name+': '+orig.qty+'x → '+novaQty+'x';
+      }).filter(Boolean);
+      if (linhasAuditoria.length && _cfg && _cfg.whatsapp) {
+        var msgAuditoria = '⚠️ *AJUSTE DE PEDIDO — AUDITORIA*\n'
+          +'📦 Pedido: '+(_ajData.num||_ajDocId)+'\n'
+          +'👤 Cliente: '+(_ajData.nome||'—')+'\n'
+          +'🕐 Horário: '+agora+'\n\n'
+          +'*Alterações realizadas:*\n'+linhasAuditoria.join('\n')+'\n\n'
+          +'💰 Total original: R$'+Number(_ajData.total||0).toFixed(2).replace('.',',')+'\n'
+          +'💰 Novo total: R$'+novoTotal.toFixed(2).replace('.',',');
+        window.open('https://wa.me/55'+_cfg.whatsapp.replace(/\D/g,'')+'?text='+encodeURIComponent(msgAuditoria),'_blank');
+      }
+
+      // ── botão para avisar cliente ──
       if (_ajData.phone) {
-        var msg = '📦 Olá '+(_ajData.nome||'')+', seu pedido '+(_ajData.num||'')+' foi ajustado.\n\nNovos itens: '+itensTxt+'\n💰 Novo total: R$'+novoTotal.toFixed(2).replace('.',',')+'\n\nQualquer dúvida estamos à disposição!';
+        var msgCliente = '📦 Olá '+(_ajData.nome||'')+', seu pedido '+(_ajData.num||'')+' foi ajustado.\n\nNovos itens: '+itensTxt+'\n💰 Novo total: R$'+novoTotal.toFixed(2).replace('.',',')+'\n\nQualquer dúvida estamos à disposição!';
         var waEl = document.getElementById('aj-wa-link');
-        waEl.href = 'https://wa.me/55'+_ajData.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+        waEl.href = 'https://wa.me/55'+_ajData.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msgCliente);
         document.getElementById('aj-wa-row').style.display = 'block';
       }
       setTimeout(function(){ btn.textContent='Salvar ajuste'; btn.disabled=false; }, 2000);
