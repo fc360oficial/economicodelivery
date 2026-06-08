@@ -1587,6 +1587,8 @@ function selMode(m) {
   document.getElementById('btn-entrega').classList.toggle('active',m==='entrega');
   document.getElementById('btn-retirada').classList.toggle('active',m==='retirada');
   document.getElementById('addr-sec').style.display=m==='entrega'?'block':'none';
+  document.getElementById('loc-mode').textContent = m==='entrega' ? 'Entrega: ' : 'Retirar na Loja: ';
+  localStorage.setItem('ec_mode', m);
   updCoSum();
 }
 function selModeSync() { selMode(_modo); }
