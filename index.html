@@ -346,6 +346,13 @@
     .dlg-title { font-size:17px;font-weight:800;color:#1a1a1a;margin-bottom:8px; }
     .dlg-sub { font-size:13px;color:#666;line-height:1.5;margin-bottom:20px; }
     .dlg-btns { display:flex;flex-direction:column;gap:10px; }
+    .dlg-end-chip { padding:8px 16px;border-radius:20px;border:1.5px solid var(--red);background:none;color:var(--red);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s; }
+    .dlg-end-chip.selected { background:var(--red);color:#fff; }
+    .end-chip { display:inline-flex;align-items:center;gap:6px;padding:10px 14px;background:#1a1a1a;border:1.5px solid #2a2a2a;border-radius:10px;font-size:13px;cursor:pointer;width:100%;text-align:left;margin-bottom:8px;transition:border-color .15s; }
+    .end-chip.selecionado { border-color:var(--red); }
+    .end-chip-apelido { font-weight:700;color:#f0f0f0; }
+    .end-chip-end { font-size:11px;color:#999;margin-top:2px; }
+    .end-chip-del { margin-left:auto;padding:4px 8px;background:none;border:none;color:#ef4444;font-size:14px;cursor:pointer;flex-shrink:0; }
     /* ── AGENDADO BOX ── */
     .agendado-box { width:100%;background:#e8f4ff;border:1px solid #93c5fd;border-radius:12px;padding:14px 16px;margin-bottom:14px;text-align:left; }
     .agendado-box-lbl { font-size:11px;color:#3b82f6;font-weight:700;text-transform:uppercase;margin-bottom:4px; }
@@ -666,6 +673,16 @@
       </div>
     </div>
 
+    <div class="menu-section" id="menu-sec-enderecos" style="display:none">
+      <div class="menu-section-label">Meus endereços</div>
+      <div id="menu-enderecos-lista"></div>
+      <div class="menu-item" onclick="abrirAdicionarEnderecoMenu()">
+        <span class="mi-icon">➕</span>
+        <div class="mi-text"><div class="mi-title">Adicionar endereço</div><div class="mi-sub">Novo local de entrega</div></div>
+        <span class="mi-arrow">›</span>
+      </div>
+    </div>
+
     <div class="menu-section">
       <div class="menu-section-label">Suporte</div>
       <div class="menu-item" onclick="faleConosco()">
@@ -747,6 +764,26 @@
 
 </div>
 
+<!-- ══════════════════ MODAL SALVAR ENDEREÇO ══════════════════ -->
+<div class="dlg-overlay" id="dlg-salvar-end" style="display:none">
+  <div class="dlg-box" style="text-align:left">
+    <div class="dlg-icon" style="text-align:center">📍</div>
+    <div class="dlg-title" style="text-align:center">Salvar endereço</div>
+    <div id="dlg-end-texto" style="font-size:13px;color:#aaa;margin-bottom:16px;padding:10px;background:#111;border-radius:8px;word-break:break-word"></div>
+    <div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:8px">Apelido</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="dlg-end-chip" onclick="selecionarApelido('🏠 Casa')">🏠 Casa</button>
+      <button class="dlg-end-chip" onclick="selecionarApelido('💼 Trabalho')">💼 Trabalho</button>
+      <button class="dlg-end-chip" onclick="selecionarApelido('👨‍👩‍👧 Família')">👨‍👩‍👧 Família</button>
+    </div>
+    <input id="dlg-end-apelido" class="co-input" placeholder="Ou digite um apelido..." style="margin-bottom:16px">
+    <div class="dlg-btns">
+      <button class="dlg-btn-sec" onclick="fecharSalvarEndereco()">Não agora</button>
+      <button class="dlg-btn-pri" onclick="confirmarSalvarEndereco()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════ CART ══════════════════ -->
 <div class="screen" id="sc-cart">
   <div class="page-header">
@@ -790,7 +827,13 @@
         <button class="mode-btn" id="btn-retirada" onclick="selMode('retirada')">🏪 Retirar na Loja</button>
       </div>
       <div id="addr-sec">
-        <input class="co-input" type="text" id="inp-address" placeholder="Rua, número, bairro, complemento" style="margin-bottom:0">
+        <!-- Endereços salvos -->
+        <div id="enderecos-salvos" style="display:none;margin-bottom:10px"></div>
+        <!-- Input de endereço -->
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="co-input" type="text" id="inp-address" placeholder="Rua, número, bairro, complemento" style="margin-bottom:0;flex:1">
+        </div>
+        <button id="btn-salvar-end" onclick="abrirSalvarEndereco()" style="display:none;margin-top:8px;width:100%;padding:10px;background:none;border:1px dashed var(--border);border-radius:10px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Salvar este endereço</button>
       </div>
     </div>
 
@@ -1059,6 +1102,7 @@ function preencherCheckout() {
   if (nomeEl && !nomeEl.value)  nomeEl.value  = c.nome  || '';
   if (phoneEl && !phoneEl.value) phoneEl.value = c.phone || '';
   if (addrEl && !addrEl.value)  addrEl.value  = c.endereco || '';
+  renderEnderecosCheckout();
 }
 
 // salvarPedidoFirestore inline em confirmar()
@@ -1716,6 +1760,7 @@ function openMenu() {
   document.getElementById('menu-overlay').classList.add('open');
   document.getElementById('menu-drawer').classList.add('open');
   _renderMenuUser();
+  renderEnderecosMenu();
   renderPedidos();
 }
 function _renderMenuUser() {
@@ -1782,6 +1827,142 @@ function loadEncarteCliente() {
     }).join('');
   }).catch(function() {
     el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Erro ao carregar encarte.</div>';
+  });
+}
+
+// ── MEUS ENDEREÇOS ────────────────────────────────────────────────────────────
+var _endSalvando = null; // endereço digitado aguardando apelido
+
+function renderEnderecosCheckout() {
+  var c = getCliente();
+  if (!c || !c.docId) return;
+  db.collection('clientes').doc(c.docId).get().then(function(doc) {
+    if (!doc.exists) return;
+    var ends = doc.data().enderecos || [];
+    var container = document.getElementById('enderecos-salvos');
+    var btnSalvar = document.getElementById('btn-salvar-end');
+    if (!ends.length) { container.style.display = 'none'; btnSalvar.style.display = 'none'; return; }
+    container.style.display = 'block';
+    container.innerHTML = '<div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Endereços salvos</div>'
+      + ends.map(function(e, i) {
+        var selecionado = document.getElementById('inp-address').value === e.endereco;
+        return '<button class="end-chip'+(selecionado?' selecionado':'')+'" onclick="selecionarEnderecoSalvo(\''+i+'\')">'
+          +'<div><div class="end-chip-apelido">'+e.apelido+'</div><div class="end-chip-end">'+e.endereco+'</div></div>'
+          +'<button class="end-chip-del" onclick="event.stopPropagation();removerEndereco('+i+')" title="Remover">✕</button>'
+          +'</button>';
+      }).join('')
+      + '<div style="font-size:12px;color:#aaa;margin:8px 0 4px">Ou informe outro endereço:</div>';
+  });
+}
+
+function selecionarEnderecoSalvo(i) {
+  var c = getCliente();
+  if (!c || !c.docId) return;
+  db.collection('clientes').doc(c.docId).get().then(function(doc) {
+    var ends = doc.data().enderecos || [];
+    if (!ends[i]) return;
+    document.getElementById('inp-address').value = ends[i].endereco;
+    document.getElementById('btn-salvar-end').style.display = 'none';
+    renderEnderecosCheckout();
+    updCoSum();
+  });
+}
+
+// Mostra botão "salvar este endereço" quando usuário digita manualmente
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('inp-address');
+  if (inp) {
+    inp.addEventListener('input', function() {
+      var c = getCliente();
+      var btn = document.getElementById('btn-salvar-end');
+      if (c && c.docId && inp.value.trim().length > 5) {
+        btn.style.display = 'block';
+      } else {
+        btn.style.display = 'none';
+      }
+    });
+  }
+});
+
+function abrirSalvarEndereco() {
+  var addr = document.getElementById('inp-address').value.trim();
+  if (!addr) return;
+  _endSalvando = addr;
+  document.getElementById('dlg-end-texto').textContent = addr;
+  document.getElementById('dlg-end-apelido').value = '';
+  document.querySelectorAll('.dlg-end-chip').forEach(function(c){ c.classList.remove('selected'); });
+  document.getElementById('dlg-salvar-end').style.display = 'flex';
+}
+
+function fecharSalvarEndereco() {
+  document.getElementById('dlg-salvar-end').style.display = 'none';
+  _endSalvando = null;
+}
+
+function selecionarApelido(ap) {
+  document.getElementById('dlg-end-apelido').value = ap;
+  document.querySelectorAll('.dlg-end-chip').forEach(function(c){ c.classList.remove('selected'); });
+  event.target.classList.add('selected');
+}
+
+function confirmarSalvarEndereco() {
+  var apelido = document.getElementById('dlg-end-apelido').value.trim();
+  if (!apelido) { alert('Escolha ou digite um apelido para o endereço.'); return; }
+  if (!_endSalvando) { fecharSalvarEndereco(); return; }
+  var c = getCliente();
+  if (!c || !c.docId) { fecharSalvarEndereco(); return; }
+  db.collection('clientes').doc(c.docId).get().then(function(doc) {
+    var ends = doc.exists ? (doc.data().enderecos || []) : [];
+    ends.push({ apelido: apelido, endereco: _endSalvando });
+    return db.collection('clientes').doc(c.docId).update({ enderecos: ends });
+  }).then(function() {
+    fecharSalvarEndereco();
+    document.getElementById('btn-salvar-end').style.display = 'none';
+    toast('📍 Endereço salvo!');
+    renderEnderecosCheckout();
+    renderEnderecosMenu();
+  }).catch(function(e){ alert('Erro: '+e.message); });
+}
+
+function removerEndereco(i) {
+  var c = getCliente();
+  if (!c || !c.docId) return;
+  db.collection('clientes').doc(c.docId).get().then(function(doc) {
+    var ends = doc.data().enderecos || [];
+    ends.splice(i, 1);
+    return db.collection('clientes').doc(c.docId).update({ enderecos: ends });
+  }).then(function() {
+    renderEnderecosCheckout();
+    renderEnderecosMenu();
+  });
+}
+
+function abrirAdicionarEnderecoMenu() {
+  closeMenu();
+  showScreen('sc-checkout');
+  selMode('entrega');
+  setTimeout(function(){ document.getElementById('inp-address').focus(); }, 300);
+}
+
+function renderEnderecosMenu() {
+  var c = getCliente();
+  var sec = document.getElementById('menu-sec-enderecos');
+  var lista = document.getElementById('menu-enderecos-lista');
+  if (!c || !c.docId) { if(sec) sec.style.display='none'; return; }
+  db.collection('clientes').doc(c.docId).get().then(function(doc) {
+    var ends = doc.exists ? (doc.data().enderecos || []) : [];
+    if (sec) sec.style.display = 'block';
+    if (!lista) return;
+    lista.innerHTML = ends.map(function(e, i) {
+      return '<div class="menu-item" style="flex-direction:column;align-items:flex-start;gap:2px">'
+        +'<div style="display:flex;width:100%;align-items:center">'
+          +'<span class="mi-icon">📍</span>'
+          +'<div class="mi-text"><div class="mi-title">'+e.apelido+'</div><div class="mi-sub">'+e.endereco+'</div></div>'
+          +'<button onclick="removerEndereco('+i+');renderEnderecosMenu()" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:4px 8px">✕</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+    if (!ends.length) lista.innerHTML = '<div style="padding:12px 20px;font-size:13px;color:#999">Nenhum endereço salvo ainda.</div>';
   });
 }
 
