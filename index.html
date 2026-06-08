@@ -985,15 +985,24 @@ function loadConfigFirestore() {
     if (elTaxa) elTaxa.textContent = C.fee > 0 ? fmt(C.fee) : 'Grátis';
     if (elGratis) elGratis.textContent = fmt(C.freeAbove);
     if (d.cepLoja) {
-      fetch('https://brasilapi.com.br/api/cep/v2/'+d.cepLoja.replace(/\D/g,''))
+      var cepLoja = d.cepLoja.replace(/\D/g,'');
+      fetch('https://brasilapi.com.br/api/cep/v2/'+cepLoja)
         .then(function(r){ return r.json(); })
         .then(function(cd){
           var coords = cd.location && cd.location.coordinates;
           if (coords && coords.latitude) {
             _storeCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
             _atualizarRangeUI();
+          } else {
+            _geocodePorNominatim(cepLoja, function(c){
+              if (c) { _storeCoords = c; _atualizarRangeUI(); }
+            });
           }
-        }).catch(function(){});
+        }).catch(function(){
+          _geocodePorNominatim(cepLoja, function(c){
+            if (c) { _storeCoords = c; _atualizarRangeUI(); }
+          });
+        });
     }
   }).catch(function(){});
 }
@@ -1306,6 +1315,17 @@ function _atualizarRangeUI() {
   }
 }
 
+function _geocodePorNominatim(cep, callback) {
+  fetch('https://nominatim.openstreetmap.org/search?postalcode='+cep+'&country=BR&format=json&limit=1',
+    { headers: { 'Accept-Language': 'pt-BR' } })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res && res.length > 0) callback({ lat: parseFloat(res[0].lat), lng: parseFloat(res[0].lon) });
+      else callback(null);
+    })
+    .catch(function(){ callback(null); });
+}
+
 function lookupCep(cep) {
   document.getElementById('cep-street').textContent = 'Buscando...';
   _cepData = null; _userCoords = null;
@@ -1321,9 +1341,18 @@ function lookupCep(cep) {
       if (coords && coords.latitude) {
         _userCoords = { lat: parseFloat(coords.latitude), lng: parseFloat(coords.longitude) };
         _atualizarRangeUI();
+      } else {
+        _geocodePorNominatim(cep, function(c){
+          if (c) { _userCoords = c; _atualizarRangeUI(); }
+        });
       }
     })
-    .catch(function(){ document.getElementById('cep-street').textContent = ''; });
+    .catch(function(){
+      document.getElementById('cep-street').textContent = '';
+      _geocodePorNominatim(cep, function(c){
+        if (c) { _userCoords = c; _atualizarRangeUI(); }
+      });
+    });
 }
 
 function entrar(mode) {
