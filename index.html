@@ -1801,7 +1801,7 @@ var _TRACK_STATUS_ICON = {recebido:'📥',preparando:'📦',saiu:'🛵',entregue
 var _TRACK_STATUS_LABEL = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saiu para entrega!',entregue:'Pedido entregue!',cancelado:'Pedido cancelado'};
 
 var _BAR_TITULO = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saindo para entrega'};
-function _updateBarAtivo(status) {
+function _updateBarAtivo(status, codigoEntrega) {
   var bar = document.getElementById('pedido-ativo-bar');
   var iconEl = document.getElementById('pedido-ativo-icon');
   var labelEl = document.getElementById('pedido-ativo-label');
@@ -1810,8 +1810,17 @@ function _updateBarAtivo(status) {
   var fim = status==='entregue'||status==='cancelado';
   bar.style.display = fim ? 'none' : 'flex';
   if (iconEl) iconEl.textContent = _TRACK_STATUS_ICON[status]||'📦';
-  if (labelEl) labelEl.textContent = _TRACK_STATUS_LABEL[status]||status;
-  if (tituloEl) tituloEl.textContent = _BAR_TITULO[status]||'Pedido em separação';
+  if (status==='saiu' && codigoEntrega) {
+    bar.style.background = '#1a1400';
+    bar.style.border = '2px solid #FFC600';
+    if (tituloEl) tituloEl.textContent = '🔐 Código de confirmação';
+    if (labelEl) labelEl.innerHTML = '<span style="font-size:22px;font-weight:900;letter-spacing:8px;color:#FFC600;font-family:monospace">'+codigoEntrega+'</span><span style="font-size:11px;color:#aaa;margin-left:8px">— mostre ao entregador</span>';
+  } else {
+    bar.style.background = '#1a1a1a';
+    bar.style.border = 'none';
+    if (labelEl) labelEl.textContent = _TRACK_STATUS_LABEL[status]||status;
+    if (tituloEl) tituloEl.textContent = _BAR_TITULO[status]||'Pedido em separação';
+  }
 }
 function abrirTrackingAtivo() {
   if (_trackDocId) { startTracking(_trackDocId); showScreen('sc-track'); }
@@ -1835,7 +1844,7 @@ function startTracking(docId) {
         +'</div>'
         +'</div>';
     }).join('');
-    _updateBarAtivo(status);
+    _updateBarAtivo(status, doc.data().codigoEntrega || null);
     if (status==='cancelado') {
       document.getElementById('track-info').textContent='❌ Pedido cancelado. Entre em contato com a loja.';
       localStorage.removeItem('ec_track');
