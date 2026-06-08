@@ -1044,7 +1044,10 @@ function showLoginView(id) {
 
 function continuarSemConta() {
   sessionStorage.setItem('ec_visitante','1');
-  showScreen('sc-splash');
+  localStorage.setItem('ec_screen','sc-home');
+  showScreen('sc-home');
+  renderAll();
+  loadProdutosFirestore();
 }
 
 function fazerLogin() {
@@ -1062,7 +1065,10 @@ function fazerLogin() {
       sessionStorage.removeItem('ec_checkout_pendente');
       _abrirCheckout();
     } else {
-      showScreen('sc-splash');
+      localStorage.setItem('ec_screen','sc-home');
+      showScreen('sc-home');
+      renderAll();
+      loadProdutosFirestore();
     }
   }).catch(function(){ err.textContent='Erro ao buscar. Tente novamente.'; });
 }
@@ -1095,7 +1101,10 @@ function criarConta() {
       sessionStorage.removeItem('ec_checkout_pendente');
       _abrirCheckout();
     } else {
-      showScreen('sc-splash');
+      localStorage.setItem('ec_screen','sc-home');
+      showScreen('sc-home');
+      renderAll();
+      loadProdutosFirestore();
     }
   }).catch(function(e){ err.textContent='Erro: '+e.message; });
 }
