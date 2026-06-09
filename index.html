@@ -1770,14 +1770,10 @@ function confirmar() {
   document.getElementById('track-num').textContent=num;
   var ps=document.getElementById('pix-sec');
   var cs=document.getElementById('card-sec');
-  if(selPay_==='pix'&&C.pixKey){
-    document.getElementById('pix-key').textContent=C.pixKey;
+  if(selPay_==='pix'){
     ps.style.display='block'; cs.style.display='none';
-    gerarQRPix(C.pixKey);
-  } else if(selPay_==='card'){
-    ps.style.display='none'; cs.style.display='block';
   } else {
-    ps.style.display='none'; cs.style.display='none';
+    ps.style.display='none'; cs.style.display='block';
   }
   var agSec = document.getElementById('agendado-sec');
   if (_pedidoAgendado && _agendadoPara) {
