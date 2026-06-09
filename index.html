@@ -688,7 +688,7 @@
       </div>
       <div class="menu-item" onclick="openSub('sub-pagamento')">
         <span class="mi-icon">💳</span>
-        <div class="mi-text"><div class="mi-title">Formas de pagamento</div><div class="mi-sub">PIX e cartão na entrega</div></div>
+        <div class="mi-text"><div class="mi-title">Formas de pagamento</div><div class="mi-sub">PIX ou cartão na maquineta</div></div>
         <span class="mi-arrow">›</span>
       </div>
     </div>
@@ -776,8 +776,8 @@
     </div>
     <div class="menu-sub-body">
       <div class="info-card">
-        <div class="info-row"><span class="info-icon">🏦</span><div><div class="info-label">PIX</div><div class="info-val">Confirmação imediata. Chave enviada após o pedido.</div></div></div>
-        <div class="info-row"><span class="info-icon">💳</span><div><div class="info-label">Cartão na entrega</div><div class="info-val">Débito ou crédito na maquininha</div></div></div>
+        <div class="info-row"><span class="info-icon">📱</span><div><div class="info-label">PIX na maquineta</div><div class="info-val">Pague com PIX na maquineta na hora da entrega ou retirada.</div></div></div>
+        <div class="info-row"><span class="info-icon">💳</span><div><div class="info-label">Cartão de crédito ou débito</div><div class="info-val">Passe seu cartão na maquineta na hora da entrega ou retirada.</div></div></div>
       </div>
     </div>
   </div>
@@ -860,18 +860,18 @@
     <div class="co-card">
       <div class="co-title">Pagamento</div>
       <div class="pay-opt active" id="pay-pix" onclick="selPay('pix')">
-        <span class="pay-opt-icon">🏦</span>
+        <span class="pay-opt-icon">📱</span>
         <div style="flex:1">
-          <div class="pay-opt-name">PIX</div>
-          <div class="pay-opt-desc">Confirmação imediata</div>
+          <div class="pay-opt-name">PIX na maquineta</div>
+          <div class="pay-opt-desc">Pague com PIX na maquineta na hora da entrega ou retirada</div>
         </div>
         <div class="pay-radio"><div class="pay-dot"></div></div>
       </div>
       <div class="pay-opt" id="pay-card" onclick="selPay('card')">
         <span class="pay-opt-icon">💳</span>
         <div style="flex:1">
-          <div class="pay-opt-name">Cartão na Entrega / Retirada</div>
-          <div class="pay-opt-desc">Débito ou crédito na maquininha</div>
+          <div class="pay-opt-name">Cartão de crédito ou débito</div>
+          <div class="pay-opt-desc">Passe seu cartão na maquineta na hora da entrega ou retirada</div>
         </div>
         <div class="pay-radio"><div class="pay-dot"></div></div>
       </div>
@@ -918,28 +918,17 @@
     </div>
     <div id="pix-sec" style="width:100%;display:none">
       <div class="pix-box">
-        <div class="pix-box-lbl" style="font-size:12px;font-weight:800;color:#b45309;margin-bottom:12px">Como pagar via PIX:</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;text-align:left;font-size:13px;color:#444">
-          <div>1️⃣ Abra seu banco ou carteira digital</div>
-          <div>2️⃣ Escolha <strong>Pagar com PIX</strong></div>
-          <div>3️⃣ Escaneie o QR Code <strong>ou</strong> copie a chave abaixo</div>
-          <div>4️⃣ Confirme o pagamento e pronto! ✅</div>
+        <div class="pix-box-lbl" style="font-size:12px;font-weight:800;color:#b45309;margin-bottom:10px">Pagamento via PIX na maquineta:</div>
+        <div style="font-size:14px;color:#7a5800;font-weight:600">
+          📱 O entregador levará a maquineta. Basta aproximar o celular ou pagar via PIX na maquineta na hora da entrega ou retirada.
         </div>
-        <div style="text-align:center;margin-bottom:12px">
-          <img id="pix-qr" src="" alt="QR Code PIX" style="width:180px;height:180px;border-radius:10px;border:2px solid #ffe08a;display:none">
-          <div id="pix-qr-loading" style="width:180px;height:180px;display:inline-flex;align-items:center;justify-content:center;background:#fff9e6;border-radius:10px;border:2px solid #ffe08a;font-size:12px;color:#999;margin:0 auto">Gerando QR...</div>
-        </div>
-        <div class="pix-box-lbl">Chave PIX:</div>
-        <div class="pix-box-key" id="pix-key"></div>
-        <button class="copy-btn" onclick="copyPix()" style="width:100%;margin-top:10px">📋 Copiar chave PIX</button>
       </div>
     </div>
     <div id="card-sec" style="width:100%;display:none">
       <div class="pix-box" style="background:#f0fdf4;border-color:#86efac">
-        <div class="pix-box-lbl" style="color:#15803d">Pagamento no cartão:</div>
-        <div style="font-size:14px;color:#166534;font-weight:600;margin-top:6px">
-          💳 Pague na maquininha quando o entregador chegar ou ao retirar na loja.<br>
-          <span style="font-size:12px;font-weight:400;color:#15803d;margin-top:4px;display:block">Aceitamos débito e crédito.</span>
+        <div class="pix-box-lbl" style="color:#15803d;font-size:12px;font-weight:800;margin-bottom:10px">Pagamento no cartão:</div>
+        <div style="font-size:14px;color:#166534;font-weight:600">
+          💳 Passe seu cartão de crédito ou débito na maquineta na hora da entrega ou retirada.
         </div>
       </div>
     </div>
