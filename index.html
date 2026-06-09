@@ -457,6 +457,21 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL CÓDIGO DE ENTREGA -->
+<div id="modal-codigo-entrega" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#111;border:2px solid #FFC600;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(255,198,0,.2)">
+    <div id="modal-cod-icon" style="font-size:40px;margin-bottom:8px">🛵</div>
+    <div id="modal-cod-titulo" style="font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">Pedido saiu para entrega!</div>
+    <div id="modal-cod-sub" style="font-size:13px;color:#aaa;margin-bottom:20px">Mostre o código abaixo ao entregador</div>
+    <div style="background:#1a1400;border:2px solid #FFC600;border-radius:14px;padding:20px 16px;margin-bottom:20px">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔐 Código de confirmação</div>
+      <div id="modal-codigo-val" style="font-size:56px;font-weight:900;color:#FFC600;letter-spacing:12px;font-family:monospace;line-height:1">····</div>
+    </div>
+    <div id="modal-cod-hint" style="font-size:12px;color:#888;margin-bottom:20px">O entregador vai digitar este código para confirmar a entrega</div>
+    <button onclick="fecharModalCodigo()" style="width:100%;padding:14px;background:#FFC600;color:#000;border:none;border-radius:12px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer">Entendi ✓</button>
+  </div>
+</div>
+
 <!-- BARRA PEDIDO ATIVO — global, position:fixed, independente da tela -->
 <div id="pedido-ativo-bar" style="display:none;position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:406px;z-index:500;background:#1a1a1a;color:#fff;border-radius:12px;padding:10px 14px;align-items:center;gap:10px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.3)" onclick="abrirTrackingAtivo()">
   <span id="pedido-ativo-icon" style="font-size:22px">📦</span>
@@ -1719,6 +1734,7 @@ function updCoSum() {
 }
 var _trackDocId = null;
 var _unsubTrack = null;
+var _lastTrackStatus = null;
 var _TRACK_STEPS = [
   {s:'recebido',   label:'Pedido recebido',    icon:'📥'},
   {s:'preparando', label:'Em separação',        icon:'📦'},
@@ -1760,9 +1776,10 @@ function confirmar() {
         :'Pedido recebido! Venha retirar na loja: '+C.address);
   var itens=Object.keys(cart).map(function(id){var p=findP(id);return p?cart[id]+'x '+p.name:'';}).filter(Boolean).join(', ');
   var descTxt = desconto()>0?'\n🏷 Desconto: -'+fmt(desconto()):'';
-  var msg='🛒 *Pedido '+num+'*\n👤 '+nome+'\n📱 '+phone+'\n'
-    +(_modo==='entrega'?'🚚 Entrega: '+addr:'🏪 Retirada na loja')+'\n'
-    +'💳 '+(selPay_==='pix'?'PIX':'Cartão')+'\n📦 '+itens+descTxt+'\n💰 Total: '+fmt(total);
+  var msg = (_modo==='retirada'
+    ? '🏪 *RETIRADA EM LOJA - Pedido '+num+'*\n👤 '+nome+'\n📱 '+phone+'\n🏪 Cliente vai retirar na loja (sem entrega)\n'
+    : '🛒 *ENTREGA - Pedido '+num+'*\n👤 '+nome+'\n📱 '+phone+'\n🚚 Entregar em: '+addr+'\n'
+  )+'💳 '+(selPay_==='pix'?'PIX':'Cartão')+'\n📦 '+itens+descTxt+'\n💰 Total: '+fmt(total);
   document.getElementById('wa-btn').href='https://wa.me/'+C.whatsapp+'?text='+encodeURIComponent(msg);
   var now=new Date();
   var dataStr=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -1801,7 +1818,7 @@ var _TRACK_STATUS_ICON = {recebido:'📥',preparando:'📦',saiu:'🛵',entregue
 var _TRACK_STATUS_LABEL = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saiu para entrega!',entregue:'Pedido entregue!',cancelado:'Pedido cancelado'};
 
 var _BAR_TITULO = {recebido:'Pedido recebido',preparando:'Pedido em separação',saiu:'Saindo para entrega'};
-function _updateBarAtivo(status, codigoEntrega) {
+function _updateBarAtivo(status, codigoEntrega, isRetirada) {
   var bar = document.getElementById('pedido-ativo-bar');
   var iconEl = document.getElementById('pedido-ativo-icon');
   var labelEl = document.getElementById('pedido-ativo-label');
@@ -1809,18 +1826,44 @@ function _updateBarAtivo(status, codigoEntrega) {
   if (!bar) return;
   var fim = status==='entregue'||status==='cancelado';
   bar.style.display = fim ? 'none' : 'flex';
-  if (iconEl) iconEl.textContent = _TRACK_STATUS_ICON[status]||'📦';
+  if (iconEl) iconEl.textContent = (isRetirada && status==='saiu') ? '🏪' : (_TRACK_STATUS_ICON[status]||'📦');
   if (status==='saiu' && codigoEntrega) {
     bar.style.background = '#1a1400';
     bar.style.border = '2px solid #FFC600';
     if (tituloEl) tituloEl.textContent = '🔐 Código de confirmação';
-    if (labelEl) labelEl.innerHTML = '<span style="font-size:22px;font-weight:900;letter-spacing:8px;color:#FFC600;font-family:monospace">'+codigoEntrega+'</span><span style="font-size:11px;color:#aaa;margin-left:8px">— mostre ao entregador</span>';
+    var hint = isRetirada ? '— mostre ao caixa' : '— mostre ao entregador';
+    if (labelEl) labelEl.innerHTML = '<span style="font-size:22px;font-weight:900;letter-spacing:8px;color:#FFC600;font-family:monospace">'+codigoEntrega+'</span><span style="font-size:11px;color:#aaa;margin-left:8px">'+hint+'</span>';
   } else {
     bar.style.background = '#1a1a1a';
     bar.style.border = 'none';
-    if (labelEl) labelEl.textContent = _TRACK_STATUS_LABEL[status]||status;
-    if (tituloEl) tituloEl.textContent = _BAR_TITULO[status]||'Pedido em separação';
+    var statusLabels = isRetirada ? {
+      recebido:'Pedido recebido', preparando:'Pedido em separação',
+      saiu:'Pronto para retirar!', entregue:'Retirada confirmada!', cancelado:'Pedido cancelado'
+    } : _TRACK_STATUS_LABEL;
+    var barTitulos = isRetirada ? {
+      recebido:'Pedido recebido', preparando:'Em separação', saiu:'Pronto para retirada'
+    } : _BAR_TITULO;
+    if (labelEl) labelEl.textContent = statusLabels[status]||status;
+    if (tituloEl) tituloEl.textContent = barTitulos[status]||'Pedido em separação';
   }
+}
+function mostrarModalCodigo(cod, isRetirada) {
+  var el = document.getElementById('modal-codigo-val');
+  if (el) el.textContent = cod;
+  var icon   = document.getElementById('modal-cod-icon');
+  var titulo = document.getElementById('modal-cod-titulo');
+  var sub    = document.getElementById('modal-cod-sub');
+  var hint   = document.getElementById('modal-cod-hint');
+  if (icon)  icon.textContent  = isRetirada ? '🏪' : '🛵';
+  if (titulo) titulo.textContent = isRetirada ? 'Pedido pronto para retirada!' : 'Pedido saiu para entrega!';
+  if (sub)   sub.textContent   = isRetirada ? 'Mostre o código ao caixa da loja' : 'Mostre o código abaixo ao entregador';
+  if (hint)  hint.textContent  = isRetirada ? 'O atendente vai digitar este código para confirmar sua retirada' : 'O entregador vai digitar este código para confirmar a entrega';
+  var m = document.getElementById('modal-codigo-entrega');
+  if (m) m.style.display = 'flex';
+}
+function fecharModalCodigo() {
+  var m = document.getElementById('modal-codigo-entrega');
+  if (m) m.style.display = 'none';
 }
 function abrirTrackingAtivo() {
   if (_trackDocId) { startTracking(_trackDocId); showScreen('sc-track'); }
@@ -1828,11 +1871,21 @@ function abrirTrackingAtivo() {
 
 function startTracking(docId) {
   if (_unsubTrack) { _unsubTrack(); _unsubTrack=null; }
+  _lastTrackStatus = null;
   _unsubTrack = db.collection('pedidos').doc(docId).onSnapshot(function(doc) {
     if (!doc.exists) return;
-    var status = doc.data().status || 'recebido';
-    var curIdx = _TRACK_STEPS.findIndex(function(s){ return s.s===status; });
-    document.getElementById('track-steps').innerHTML = _TRACK_STEPS.map(function(step, i) {
+    var data = doc.data();
+    var status = data.status || 'recebido';
+    var cod = data.codigoEntrega || null;
+    var isRetirada = data.modo === 'retirada';
+    var steps = [
+      {s:'recebido',   label:'Pedido recebido',                                             icon:'📥'},
+      {s:'preparando', label:'Em separação',                                                icon:'📦'},
+      {s:'saiu',       label: isRetirada ? 'Pronto para retirar!' : 'Saiu para entrega!', icon: isRetirada ? '🏪' : '🛵'},
+      {s:'entregue',   label: isRetirada ? 'Retirada confirmada!' : 'Pedido entregue!',   icon:'✅'},
+    ];
+    var curIdx = steps.findIndex(function(s){ return s.s===status; });
+    document.getElementById('track-steps').innerHTML = steps.map(function(step, i) {
       var done = i <= curIdx;
       var active = i === curIdx;
       return '<div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #eee">'
@@ -1844,20 +1897,24 @@ function startTracking(docId) {
         +'</div>'
         +'</div>';
     }).join('');
-    _updateBarAtivo(status, doc.data().codigoEntrega || null);
+    if (status === 'saiu' && cod && _lastTrackStatus !== null && _lastTrackStatus !== 'saiu') {
+      mostrarModalCodigo(cod, isRetirada);
+    }
+    _lastTrackStatus = status;
+    _updateBarAtivo(status, cod, isRetirada);
     if (status==='cancelado') {
       document.getElementById('track-info').textContent='❌ Pedido cancelado. Entre em contato com a loja.';
       localStorage.removeItem('ec_track');
     } else if (status==='entregue') {
-      document.getElementById('track-info').textContent='🎉 Pedido entregue! Obrigado pela preferência.';
+      document.getElementById('track-info').textContent = isRetirada ? '🎉 Retirada confirmada! Obrigado pela preferência.' : '🎉 Pedido entregue! Obrigado pela preferência.';
       localStorage.removeItem('ec_track');
-    } else if (status==='saiu' && doc.data().codigoEntrega) {
-      var cod = doc.data().codigoEntrega;
+    } else if (status==='saiu' && cod) {
+      var codigoTxt = isRetirada ? 'Mostre este código ao caixa para retirar' : 'Mostre este código ao entregador';
       document.getElementById('track-info').innerHTML =
         '<div style="background:#1a1400;border:2px solid #FFC600;border-radius:12px;padding:16px;margin:8px 0;text-align:center">'
-        + '<div style="font-size:12px;color:#aaa;margin-bottom:6px">🔐 Código de confirmação de entrega</div>'
+        + '<div style="font-size:12px;color:#aaa;margin-bottom:6px">🔐 Código de confirmação</div>'
         + '<div style="font-size:48px;font-weight:900;color:#FFC600;letter-spacing:10px;font-family:monospace">'+cod+'</div>'
-        + '<div style="font-size:11px;color:#888;margin-top:6px">Mostre este código ao entregador</div>'
+        + '<div style="font-size:11px;color:#888;margin-top:6px">'+codigoTxt+'</div>'
         + '</div>';
     } else {
       document.getElementById('track-info').textContent='⏱ Atualizando em tempo real...';
