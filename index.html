@@ -998,11 +998,19 @@ function loadConfigFirestore() {
 
 function lojaAberta() {
   if (!C.horario || !C.horario.ativo) return true;
-  var agora = new Date();
-  var hh = agora.getHours(), mm = agora.getMinutes();
-  var atual = hh * 60 + mm;
-  var partes = function(t){ var p=t.split(':'); return parseInt(p[0])*60+parseInt(p[1]); };
-  return atual >= partes(C.horario.abertura) && atual < partes(C.horario.fechamento);
+  var agora   = new Date();
+  var dia     = agora.getDay(); // 0=domingo
+  var atual   = agora.getHours() * 60 + agora.getMinutes();
+  var partes  = function(t){ var p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); };
+  if (dia === 0) {
+    var dom = C.horario.domingo;
+    if (!dom || !dom.aberto) return false;
+    return atual >= partes(dom.abertura) && atual < partes(dom.fechamento);
+  }
+  var sem = C.horario.semana || C.horario;
+  var ab  = sem.abertura   || '08:00';
+  var fe  = sem.fechamento || '22:00';
+  return atual >= partes(ab) && atual < partes(fe);
 }
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
@@ -1620,15 +1628,33 @@ var _pedidoAgendado = false;
 var _agendadoPara = '';
 
 function _textoAgendamento() {
-  if (!C.horario || !C.horario.abertura) return '';
-  var agora = new Date();
-  var partes = function(t){ var p=t.split(':'); return parseInt(p[0])*60+parseInt(p[1]); };
-  var atual = agora.getHours()*60+agora.getMinutes();
-  var abertura = partes(C.horario.abertura);
-  var amanha = atual > abertura; // já abriu e fechou hoje → amanhã; ainda não abriu → hoje
-  var d = new Date(agora);
-  if (amanha) d.setDate(d.getDate()+1);
-  return d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})+' às '+C.horario.abertura;
+  if (!C.horario) return '';
+  var partes = function(t){ var p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]); };
+  var d = new Date();
+  // Avança dias até encontrar um dia com abertura configurada
+  for (var i = 0; i < 8; i++) {
+    var dia = d.getDay();
+    var atual = d.getHours() * 60 + d.getMinutes();
+    var horDia;
+    if (dia === 0) {
+      var dom = C.horario.domingo;
+      horDia = (dom && dom.aberto) ? dom : null;
+    } else {
+      var sem = C.horario.semana || C.horario;
+      horDia = sem.abertura ? sem : null;
+    }
+    if (horDia) {
+      var ab = partes(horDia.abertura);
+      if (i === 0 && atual < ab) {
+        return d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}) + ' às ' + horDia.abertura;
+      } else if (i > 0) {
+        return d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}) + ' às ' + horDia.abertura;
+      }
+    }
+    d.setDate(d.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+  }
+  return '';
 }
 
 function abrirDlgAgendar() {
