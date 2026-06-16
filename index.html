@@ -57,6 +57,55 @@
     .login-err { font-size:12px; color:#e31e24; min-height:16px; margin-top:-12px; margin-bottom:8px; }
     .login-label { font-size:12px; font-weight:700; color:#888; align-self:flex-start; margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px; }
 
+    /* ══════════ CADASTRO MULTI-STEP ══════════ */
+    #lv-cadastro.active {
+      position: fixed; inset: 0; max-width: 430px; left: 50%; transform: translateX(-50%);
+      background: #fff; z-index: 60; overflow-y: auto; flex-direction: column;
+      align-items: stretch; padding: 0; max-height: 100svh;
+    }
+    .cad-topbar {
+      display: flex; align-items: center; padding: 14px 18px;
+      border-bottom: 1px solid #f0f0f0; position: sticky; top: 0;
+      background: #fff; z-index: 10;
+    }
+    .cad-topbar-back {
+      background: none; border: none; font-size: 22px; color: #1a1a1a;
+      cursor: pointer; padding: 4px 8px 4px 0; line-height: 1; flex-shrink: 0;
+    }
+    .cad-topbar-title { font-size: 16px; font-weight: 800; color: #1a1a1a; }
+    .cad-body { flex: 1; padding: 22px 20px 16px; display: flex; flex-direction: column; }
+    .cad-step-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 26px; }
+    .cad-prog-wrap { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
+    .cad-prog-num {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; color: #1a1a1a; line-height: 1.2; text-align: center;
+    }
+    .cad-step-info { flex: 1; padding-top: 6px; }
+    .cad-step-title { font-size: 16px; font-weight: 500; color: #1a1a1a; line-height: 1.35; margin-bottom: 5px; }
+    .cad-step-sub { font-size: 12px; color: #999; line-height: 1.5; }
+    .cad-fields { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+    .cad-field { display: flex; flex-direction: column; gap: 5px; }
+    .cad-field-lbl { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+    .cad-input {
+      width: 100%; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 13px 14px;
+      font-size: 15px; font-family: inherit; color: #1a1a1a; background: #fafafa;
+      outline: none; transition: border-color .2s, box-shadow .2s, background .2s; box-sizing: border-box;
+    }
+    .cad-input:focus { border-color: #FFC600; background: #fff; box-shadow: 0 0 0 3px rgba(255,198,0,.13); }
+    .cad-input[readonly] { color: #999; cursor: default; background: #f5f5f5; }
+    .cad-input::placeholder { color: #bbb; }
+    .cad-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cad-cep-status { font-size: 12px; color: #b08800; font-weight: 600; min-height: 16px; margin-top: -6px; }
+    .cad-check-list { display: flex; flex-direction: column; gap: 18px; margin-top: 8px; }
+    .cad-check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; font-size: 14px; color: #444; line-height: 1.45; }
+    .cad-check input[type=checkbox] { width: 20px; height: 20px; accent-color: #FFC600; flex-shrink: 0; cursor: pointer; margin-top: 1px; }
+    .cad-pref-head { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+    .cad-pref-sub { font-size: 13px; color: #888; margin-bottom: 18px; line-height: 1.5; }
+    .cad-actions {
+      padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column;
+      gap: 8px; border-top: 1px solid #f0f0f0; background: #fff; position: sticky; bottom: 0;
+    }
+
     /* ══════════ SPLASH ══════════ */
     #sc-splash { background: #fff; align-items: center; justify-content: center; padding: 48px 32px; }
     .splash-logo { width: 220px; object-fit: contain; margin-bottom: 52px; mix-blend-mode: multiply; }
@@ -512,32 +561,113 @@
     </div>
   </div>
 
-  <!-- VIEW: cadastro -->
+  <!-- VIEW: cadastro multi-step -->
   <div class="login-view" id="lv-cadastro">
-    <img src="./logo.png?v=3" alt="" class="login-logo" onerror="this.style.display='none'">
-    <button class="login-back" onclick="showLoginView('lv-main')">← Voltar</button>
-    <div class="login-title">Criar conta</div>
-    <div class="login-sub">Seus dados ficam salvos para a próxima compra</div>
-    <div class="login-label">Nome completo</div>
-    <input class="login-input" type="text" id="lc-nome" placeholder="Seu nome">
-    <div class="login-label">Celular (WhatsApp)</div>
-    <input class="login-input" type="tel" id="lc-phone" placeholder="(81) 99999-9999">
-    <div class="login-label">Endereço principal</div>
-    <input class="login-input" type="text" id="lc-end" placeholder="Rua e número">
-    <div class="login-label">Bairro</div>
-    <input class="login-input" type="text" id="lc-bairro" placeholder="Seu bairro">
-    <div class="login-label">E-mail <span style="font-size:10px;color:#999">(opcional)</span></div>
-    <input class="login-input" type="email" id="lc-email" placeholder="seu@email.com">
-    <div class="login-label">Data de nascimento <span style="font-size:10px;color:#999">(opcional)</span></div>
-    <input class="login-input" type="tel" id="lc-nasc" placeholder="DD/MM/AAAA" maxlength="10" oninput="maskData(this)">
-    <label style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;cursor:pointer;font-size:13px;color:#555">
-      <input type="checkbox" id="lc-marketing" checked style="width:18px;height:18px;accent-color:#FFC600;flex-shrink:0">
-      Quero receber ofertas e promoções
-    </label>
-    <div class="login-err" id="lc-err"></div>
-    <div class="login-btns">
-      <button class="login-btn login-btn-primary" onclick="criarConta()">Criar conta →</button>
+
+    <!-- Barra superior -->
+    <div class="cad-topbar">
+      <button class="cad-topbar-back" onclick="cadVoltar()">&#8592;</button>
+      <div class="cad-topbar-title">Cadastro</div>
     </div>
+
+    <!-- Corpo -->
+    <div class="cad-body">
+
+      <!-- Cabeçalho do step com progress circular -->
+      <div class="cad-step-header">
+        <div class="cad-prog-wrap">
+          <svg width="58" height="58" viewBox="0 0 58 58">
+            <circle cx="29" cy="29" r="25" fill="none" stroke="#e8e8e8" stroke-width="3.5"/>
+            <circle id="cad-prog-ring" cx="29" cy="29" r="25" fill="none" stroke="#FFC600" stroke-width="3.5"
+              stroke-dasharray="157.1" stroke-dashoffset="104.7"
+              stroke-linecap="round" transform="rotate(-90 29 29)"
+              style="transition:stroke-dashoffset .4s ease"/>
+          </svg>
+          <div class="cad-prog-num" id="cad-prog-num"><strong>1</strong><br><span style="font-weight:400">de 3</span></div>
+        </div>
+        <div class="cad-step-info">
+          <div class="cad-step-title" id="cad-step-title">Qual o seu <strong>endereço?</strong></div>
+          <div class="cad-step-sub" id="cad-step-sub">Informe o endereço para receber suas compras.</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Endereço -->
+      <div class="cad-fields" id="cad-s1">
+        <div class="cad-field">
+          <div class="cad-field-lbl">CEP *</div>
+          <input class="cad-input" type="tel" id="lc-cep" placeholder="00000-000" maxlength="9" oninput="cadMaskCep(this)">
+          <div class="cad-cep-status" id="cad-cep-status"></div>
+        </div>
+        <div class="cad-field">
+          <div class="cad-field-lbl">Rua *</div>
+          <input class="cad-input" type="text" id="lc-rua" placeholder="Nome da rua">
+        </div>
+        <div class="cad-row">
+          <div class="cad-field">
+            <div class="cad-field-lbl">Número *</div>
+            <input class="cad-input" type="text" id="lc-num" placeholder="101">
+          </div>
+          <div class="cad-field">
+            <div class="cad-field-lbl">Complemento</div>
+            <input class="cad-input" type="text" id="lc-comp" placeholder="Apto, bloco…">
+          </div>
+        </div>
+        <div class="cad-field">
+          <div class="cad-field-lbl">Bairro *</div>
+          <input class="cad-input" type="text" id="lc-bairro" placeholder="Seu bairro">
+        </div>
+      </div>
+
+      <!-- Step 2: Dados pessoais -->
+      <div class="cad-fields" id="cad-s2" style="display:none">
+        <div class="cad-field">
+          <div class="cad-field-lbl">Nome completo *</div>
+          <input class="cad-input" type="text" id="lc-nome" placeholder="Como prefere ser chamado">
+        </div>
+        <div class="cad-field">
+          <div class="cad-field-lbl">Celular (WhatsApp) *</div>
+          <input class="cad-input" type="tel" id="lc-phone" placeholder="(81) 99999-9999" oninput="cadMaskPhone(this)">
+        </div>
+        <div class="cad-field">
+          <div class="cad-field-lbl">E-mail <span style="font-weight:400;text-transform:none;font-size:10px">(opcional)</span></div>
+          <input class="cad-input" type="email" id="lc-email" placeholder="seu@email.com">
+        </div>
+        <div class="cad-field">
+          <div class="cad-field-lbl">Data de nascimento <span style="font-weight:400;text-transform:none;font-size:10px">(opcional)</span></div>
+          <input class="cad-input" type="tel" id="lc-nasc" placeholder="DD/MM/AAAA" maxlength="10" oninput="maskData(this)">
+        </div>
+      </div>
+
+      <!-- Step 3: Preferências -->
+      <div class="cad-fields" id="cad-s3" style="display:none">
+        <div class="cad-pref-head">Quase lá!</div>
+        <div class="cad-pref-sub">Configure suas preferências de comunicação para não perder nenhuma oferta.</div>
+        <div class="cad-check-list">
+          <label class="cad-check">
+            <input type="checkbox" id="lc-tabloid" checked>
+            <span>Desejo receber via e-mail os tablóides e ofertas da semana</span>
+          </label>
+          <label class="cad-check">
+            <input type="checkbox" id="lc-marketing" checked>
+            <span>Desejo receber promoções via WhatsApp</span>
+          </label>
+          <label class="cad-check">
+            <input type="checkbox" id="lc-termos">
+            <span>Li e aceito os <a href="#" style="color:#b08800;font-weight:700;text-decoration:none" onclick="return false">termos de uso</a></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="login-err" id="lc-err" style="margin-top:14px"></div>
+    </div>
+
+    <!-- Ações (sticky bottom) -->
+    <div class="cad-actions">
+      <button class="login-btn login-btn-primary" id="cad-btn-av" onclick="cadAvancar()">Avançar →</button>
+      <button class="login-btn login-btn-outline" id="cad-btn-vol" onclick="cadVoltar()" style="display:none">Voltar</button>
+      <button class="login-btn login-btn-ghost" id="cad-btn-cancel" onclick="showLoginView('lv-main')">Cancelar</button>
+    </div>
+
   </div>
 
 </div>
@@ -1054,15 +1184,136 @@ function limparCliente() {
   localStorage.removeItem('ec_cliente');
 }
 
+// ── CADASTRO MULTI-STEP ──────────────────────────────────────────────────────
+
+var _cadStep = 1;
+
+var _CAD_STEPS = [
+  {
+    num: '<strong>1</strong><br><span style="font-weight:400">de 3</span>',
+    offset: 104.7,
+    title: 'Qual o seu <strong>endereço?</strong>',
+    sub: 'Informe o endereço para receber suas compras.'
+  },
+  {
+    num: '<strong>2</strong><br><span style="font-weight:400">de 3</span>',
+    offset: 52.4,
+    title: 'Seus <strong>dados pessoais</strong>',
+    sub: 'Precisamos de alguns dados para criar sua conta.'
+  },
+  {
+    num: '<strong>3</strong><br><span style="font-weight:400">de 3</span>',
+    offset: 0,
+    title: '<strong>Preferências</strong> de comunicação',
+    sub: 'Escolha como quer receber nossas ofertas.'
+  }
+];
+
+function _cadSetStep(n) {
+  _cadStep = n;
+  var s = _CAD_STEPS[n-1];
+  document.getElementById('cad-prog-num').innerHTML = s.num;
+  document.getElementById('cad-prog-ring').style.strokeDashoffset = s.offset;
+  document.getElementById('cad-step-title').innerHTML = s.title;
+  document.getElementById('cad-step-sub').textContent = s.sub;
+  document.getElementById('cad-s1').style.display = n===1 ? 'flex' : 'none';
+  document.getElementById('cad-s2').style.display = n===2 ? 'flex' : 'none';
+  document.getElementById('cad-s3').style.display = n===3 ? 'flex' : 'none';
+  document.getElementById('cad-btn-vol').style.display = n > 1 ? 'block' : 'none';
+  document.getElementById('cad-btn-cancel').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('cad-btn-av').textContent = n === 3 ? 'Criar conta ✓' : 'Avançar →';
+  document.getElementById('lc-err').textContent = '';
+  var body = document.querySelector('.cad-body');
+  if (body) body.scrollTop = 0;
+}
+
+function cadAvancar() {
+  var err = document.getElementById('lc-err');
+  err.textContent = '';
+  if (_cadStep === 1) {
+    var cep    = (document.getElementById('lc-cep').value  || '').replace(/\D/g,'');
+    var rua    = (document.getElementById('lc-rua').value  || '').trim();
+    var num    = (document.getElementById('lc-num').value  || '').trim();
+    var bairro = (document.getElementById('lc-bairro').value || '').trim();
+    if (!cep || cep.length < 8)  { err.textContent = 'Informe um CEP válido.'; return; }
+    if (!rua)                     { err.textContent = 'Informe a rua.'; return; }
+    if (!num)                     { err.textContent = 'Informe o número.'; return; }
+    if (!bairro)                  { err.textContent = 'Informe o bairro.'; return; }
+    _cadSetStep(2);
+    setTimeout(function(){ var el=document.getElementById('lc-nome'); if(el) el.focus(); }, 100);
+    return;
+  }
+  if (_cadStep === 2) {
+    var nome  = (document.getElementById('lc-nome').value  || '').trim();
+    var phone = (document.getElementById('lc-phone').value || '').replace(/\D/g,'');
+    if (!nome)              { err.textContent = 'Informe seu nome.'; return; }
+    if (phone.length < 10)  { err.textContent = 'Informe um celular válido com DDD.'; return; }
+    _cadSetStep(3);
+    return;
+  }
+  if (_cadStep === 3) {
+    if (!document.getElementById('lc-termos').checked) {
+      err.textContent = 'Aceite os termos de uso para continuar.';
+      return;
+    }
+    criarConta();
+  }
+}
+
+function cadVoltar() {
+  if (_cadStep > 1) { _cadSetStep(_cadStep - 1); return; }
+  showLoginView('lv-main');
+}
+
+function cadMaskCep(el) {
+  var v = el.value.replace(/\D/g,'');
+  if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5,8);
+  el.value = v;
+  var raw = v.replace('-','');
+  var status = document.getElementById('cad-cep-status');
+  if (raw.length === 8) {
+    if (status) status.textContent = 'Buscando endereço…';
+    _geocodeCep(raw, function(info) {
+      if (!info) { if (status) status.textContent = 'CEP não encontrado.'; return; }
+      if (status) status.textContent = '';
+      var ruaEl    = document.getElementById('lc-rua');
+      var bairroEl = document.getElementById('lc-bairro');
+      if (ruaEl    && !ruaEl.value    && info.logradouro) ruaEl.value    = info.logradouro;
+      if (bairroEl && !bairroEl.value && info.bairro)     bairroEl.value = info.bairro;
+      if (ruaEl) setTimeout(function(){ ruaEl.focus(); }, 50);
+    });
+  } else {
+    if (status) status.textContent = '';
+  }
+}
+
+function cadMaskPhone(el) {
+  var v = el.value.replace(/\D/g,'');
+  if (v.length <= 2)  { el.value = v.length ? '('+v : ''; return; }
+  if (v.length <= 6)  { el.value = '('+v.slice(0,2)+') '+v.slice(2); return; }
+  if (v.length <= 10) { el.value = '('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6); return; }
+  el.value = '('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7,11);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function showLoginView(id) {
   document.querySelectorAll('.login-view').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
-  if (id === 'lv-cadastro' && _cepData) {
-    var endEl    = document.getElementById('lc-end');
-    var bairroEl = document.getElementById('lc-bairro');
-    if (endEl    && !endEl.value    && _cepData.logradouro) endEl.value    = _cepData.logradouro + ', ';
-    if (bairroEl && !bairroEl.value && _cepData.bairro)     bairroEl.value = _cepData.bairro;
-    if (endEl) { endEl.focus(); endEl.setSelectionRange(endEl.value.length, endEl.value.length); }
+  if (id === 'lv-cadastro') {
+    _cadSetStep(1);
+    // Pré-preenche CEP e rua/bairro do splash se disponível
+    var splashCep = document.getElementById('splash-cep');
+    var lcCep = document.getElementById('lc-cep');
+    if (lcCep && splashCep && splashCep.value && !lcCep.value) {
+      lcCep.value = splashCep.value;
+      if (_cepData) {
+        var ruaEl    = document.getElementById('lc-rua');
+        var bairroEl = document.getElementById('lc-bairro');
+        if (ruaEl    && !ruaEl.value    && _cepData.logradouro) ruaEl.value    = _cepData.logradouro;
+        if (bairroEl && !bairroEl.value && _cepData.bairro)     bairroEl.value = _cepData.bairro;
+      }
+    }
   }
 }
 
@@ -1100,18 +1351,21 @@ function fazerLogin() {
 function criarConta() {
   var nome      = document.getElementById('lc-nome').value.trim();
   var phone     = document.getElementById('lc-phone').value.replace(/\D/g,'');
-  var end       = document.getElementById('lc-end').value.trim();
-  var bairro    = document.getElementById('lc-bairro').value.trim();
+  var cep       = (document.getElementById('lc-cep').value||'').trim();
+  var rua       = (document.getElementById('lc-rua').value||'').trim();
+  var num       = (document.getElementById('lc-num').value||'').trim();
+  var comp      = (document.getElementById('lc-comp').value||'').trim();
+  var bairro    = (document.getElementById('lc-bairro').value||'').trim();
   var email     = document.getElementById('lc-email').value.trim();
   var nasc      = document.getElementById('lc-nasc').value;
   var marketing = document.getElementById('lc-marketing').checked;
+  var tabloid   = document.getElementById('lc-tabloid').checked;
   var err       = document.getElementById('lc-err');
-  if (!nome) { err.textContent='Informe seu nome.'; return; }
-  if (phone.length < 10) { err.textContent='Informe um celular válido.'; return; }
+  var end       = rua + (num ? ', '+num : '') + (comp ? ' '+comp : '') + (bairro ? ' — '+bairro : '') + (cep ? ' — CEP '+cep : '');
   err.textContent='';
   var data = {
-    nome:nome, phone:phone, endereco:end, bairro:bairro,
-    aceitaMarketing:marketing,
+    nome:nome, phone:phone, endereco:end, bairro:bairro, cep:cep,
+    aceitaMarketing:marketing, aceitaTableide:tabloid,
     totalGasto:0, qtdPedidos:0,
     criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
     ultimoAcesso: firebase.firestore.FieldValue.serverTimestamp()
