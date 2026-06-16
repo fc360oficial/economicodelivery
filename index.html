@@ -1187,6 +1187,40 @@ function limparCliente() {
 // ── CADASTRO MULTI-STEP ──────────────────────────────────────────────────────
 
 var _cadStep = 1;
+var _CAD_DRAFT_KEY = 'ec_cad_draft';
+var _cadDraftListenerAdded = false;
+
+function cadSalvarRascunho() {
+  var g = function(id){ var el=document.getElementById(id); return el ? el.value : ''; };
+  sessionStorage.setItem(_CAD_DRAFT_KEY, JSON.stringify({
+    step:   _cadStep,
+    cep:    g('lc-cep'),   rua:   g('lc-rua'),  num:  g('lc-num'),
+    comp:   g('lc-comp'),  bairro:g('lc-bairro'),
+    nome:   g('lc-nome'),  phone: g('lc-phone'), email:g('lc-email'), nasc:g('lc-nasc')
+  }));
+}
+
+function cadRestaurarRascunho() {
+  try {
+    var d = JSON.parse(sessionStorage.getItem(_CAD_DRAFT_KEY)||'{}');
+    if (!d.cep && !d.nome) return;
+    ['cep','rua','num','comp','bairro','nome','phone','email','nasc'].forEach(function(f){
+      var el = document.getElementById('lc-'+f);
+      if (el && d[f]) el.value = d[f];
+    });
+    if (d.step && d.step > 1) _cadSetStep(d.step);
+  } catch(e){}
+}
+
+function cadIniciarDraftListener() {
+  if (_cadDraftListenerAdded) return;
+  _cadDraftListenerAdded = true;
+  var el = document.getElementById('lv-cadastro');
+  if (el) {
+    el.addEventListener('input',  cadSalvarRascunho);
+    el.addEventListener('change', cadSalvarRascunho);
+  }
+}
 
 var _CAD_STEPS = [
   {
@@ -1301,17 +1335,25 @@ function showLoginView(id) {
   document.querySelectorAll('.login-view').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   if (id === 'lv-cadastro') {
-    _cadSetStep(1);
-    // Pré-preenche CEP e rua/bairro do splash se disponível
-    var splashCep = document.getElementById('splash-cep');
-    var lcCep = document.getElementById('lc-cep');
-    if (lcCep && splashCep && splashCep.value && !lcCep.value) {
-      lcCep.value = splashCep.value;
-      if (_cepData) {
-        var ruaEl    = document.getElementById('lc-rua');
-        var bairroEl = document.getElementById('lc-bairro');
-        if (ruaEl    && !ruaEl.value    && _cepData.logradouro) ruaEl.value    = _cepData.logradouro;
-        if (bairroEl && !bairroEl.value && _cepData.bairro)     bairroEl.value = _cepData.bairro;
+    cadIniciarDraftListener();
+    // Restaura rascunho salvo (tem prioridade)
+    var draft = {};
+    try { draft = JSON.parse(sessionStorage.getItem(_CAD_DRAFT_KEY)||'{}'); } catch(e){}
+    if (draft.cep || draft.nome) {
+      cadRestaurarRascunho();
+    } else {
+      _cadSetStep(1);
+      // Pré-preenche CEP e rua/bairro do splash se não há rascunho
+      var splashCep = document.getElementById('splash-cep');
+      var lcCep = document.getElementById('lc-cep');
+      if (lcCep && splashCep && splashCep.value && !lcCep.value) {
+        lcCep.value = splashCep.value;
+        if (_cepData) {
+          var ruaEl    = document.getElementById('lc-rua');
+          var bairroEl = document.getElementById('lc-bairro');
+          if (ruaEl    && !ruaEl.value    && _cepData.logradouro) ruaEl.value    = _cepData.logradouro;
+          if (bairroEl && !bairroEl.value && _cepData.bairro)     bairroEl.value = _cepData.bairro;
+        }
       }
     }
   }
@@ -1375,6 +1417,7 @@ function criarConta() {
   db.collection('clientes').doc(phone).set(data, {merge:true}).then(function() {
     setCliente({ nome:nome, phone:phone, endereco:end });
     sessionStorage.removeItem('ec_visitante');
+    sessionStorage.removeItem(_CAD_DRAFT_KEY);
     if (sessionStorage.getItem('ec_checkout_pendente') === '1') {
       sessionStorage.removeItem('ec_checkout_pendente');
       _abrirCheckout();
